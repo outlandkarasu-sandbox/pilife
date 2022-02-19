@@ -1,0 +1,4 @@
+services:
+  cross-compiler:
+    build: ./cross-compiler
+
