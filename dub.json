@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"outland.karasu@gmail.com"
+	],
+	"copyright": "Copyright © 2022, outland.karasu@gmail.com",
+	"description": "Life Game implementation for RPi.",
+	"license": "BSL-1.0",
+	"name": "pilife"
+}

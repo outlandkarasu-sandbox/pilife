@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/pilife
+pilife.so
+pilife.dylib
+pilife.dll
+pilife.a
+pilife.lib
+pilife-test-*
+*.exe
+*.o
+*.obj
+*.lst
