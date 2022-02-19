@@ -3,6 +3,9 @@
 		"outland.karasu@gmail.com"
 	],
 	"copyright": "Copyright © 2022, outland.karasu@gmail.com",
+	"dependencies": {
+		"bindbc-sdl": "~>1.0.1"
+	},
 	"description": "Life Game implementation for RPi.",
 	"license": "BSL-1.0",
 	"name": "pilife"
