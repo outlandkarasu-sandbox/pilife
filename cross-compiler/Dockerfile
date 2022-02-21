@@ -9,7 +9,7 @@ RUN apt update \
   && curl -L https://downloads.raspberrypi.org/raspios_lite_armhf/archive/2022-01-28-13:51/root.tar.xz \
          -o /tmp/sysroot/root.tar.xz \
   && cd /tmp/sysroot \
-  && tar xvJf root.tar.xz /usr/lib /usr/include \
+  && tar xvJf root.tar.xz ./usr/lib ./usr/include \
   && rm root.tar.xz
 
 FROM library/debian@sha256:125f346eac7055d8e1de1b036b1bd39781be5bad3d36417c109729d71af0cd73 AS ldc
@@ -48,7 +48,8 @@ WORKDIR /home/ldc
 RUN . ./dlang/ldc-1.28.1/activate \
   && CC=arm-linux-gnueabihf-gcc ldc-build-runtime \
     --ninja \
-    --dFlags="-mtriple=arm-linux-gnueabihf;-mcpu=arm1176jzf-s" \
+    --dFlags="-w;-mtriple=arm-linux-gnueabihf;-mcpu=arm1176jzf-s" \
+    --targetSystem="Linux;UNIX" \
   && mkdir /tmp/druntime \
   && cp ./ldc-build-runtime.tmp/lib/* /tmp/druntime \
   && rm -rf ./ldc-build-runtime.tmp
@@ -61,12 +62,12 @@ COPY --from=druntime --chown=ldc:ldc /tmp/druntime ./druntime
 RUN echo ". ~/dlang/ldc-1.28.1/activate" >> ~/.bashrc \
   && mkdir ./pilife
 
-COPY --chown=ldc:ldc ldc2.conf ./pilife/ldc2.conf
 COPY --chown=ldc:ldc dub.json ./pilife/dub.json
 COPY --chown=ldc:ldc dub.selections.json ./pilife/dub.selections.json
-#RUN mkdir ./pilife/source \
-# && echo "void main() {}" > ./pilife/source/app.d \
-# && . ./dlang/ldc-1.28.1/activate \
-# && cd ./pilife \
-# && dub build --arch=arm-linux-gnueabihf
+COPY --chown=ldc:ldc ldc-arm.sh ./pilife/ldc-arm.sh
+RUN mkdir ./pilife/source \
+  && echo "void main() {}" > ./pilife/source/app.d \
+  && . ./dlang/ldc-1.28.1/activate \
+  && cd ./pilife \
+  && dub build --compiler=./ldc-arm.sh
 
