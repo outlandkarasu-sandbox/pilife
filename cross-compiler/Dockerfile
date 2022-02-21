@@ -10,7 +10,7 @@ RUN apt update \
   && 7z e -o/tmp /tmp/raspios.zip '*.img' \
   && 7z e -spf -o/tmp /tmp/2022-01-28-raspios-bullseye-armhf-lite.img 1.img \
   && mkdir /tmp/sysroot \
-  && 7z e -spf -o/tmp/sysroot /tmp/1.img lib/ usr/include/ usr/lib/ opt/vc/ \
+  && 7z e -spf -o/tmp/sysroot /tmp/1.img usr/include/ usr/lib/ \
   && rm /tmp/raspios.zip /tmp/2022-01-28-raspios-bullseye-armhf-lite.img /tmp/1.img
 
 FROM library/debian@sha256:125f346eac7055d8e1de1b036b1bd39781be5bad3d36417c109729d71af0cd73 AS ldc
@@ -49,7 +49,7 @@ WORKDIR /home/ldc
 RUN . ./dlang/ldc-1.28.1/activate \
   && CC=arm-linux-gnueabihf-gcc ldc-build-runtime \
     --ninja \
-    --dFlags="-mtriple=arm-linux-gnueabihf" \
+    --dFlags="-mtriple=arm-linux-gnueabihf;-mcpu=arm1176jzf-s" \
   && mkdir /tmp/druntime \
   && cp ./ldc-build-runtime.tmp/lib/* /tmp/druntime \
   && rm -rf ./ldc-build-runtime.tmp
