@@ -62,12 +62,16 @@ COPY --from=druntime --chown=ldc:ldc /tmp/druntime ./druntime
 RUN echo ". ~/dlang/ldc-1.28.1/activate" >> ~/.bashrc \
   && mkdir ./pilife
 
-COPY --chown=ldc:ldc dub.json ./pilife/dub.json
-COPY --chown=ldc:ldc dub.selections.json ./pilife/dub.selections.json
-COPY --chown=ldc:ldc ldc-arm.sh ./pilife/ldc-arm.sh
-RUN mkdir ./pilife/source \
-  && echo "void main() {}" > ./pilife/source/app.d \
-  && . ./dlang/ldc-1.28.1/activate \
-  && cd ./pilife \
+WORKDIR /home/ldc/pilife
+
+COPY --chown=ldc:ldc dub.json dub.json
+COPY --chown=ldc:ldc dub.selections.json dub.selections.json
+COPY --chown=ldc:ldc ldc-arm.sh ldc-arm.sh
+RUN mkdir ./source \
+  && echo "void main() {}" > ./source/app.d \
+  && . ~/dlang/ldc-1.28.1/activate \
   && dub build --compiler=./ldc-arm.sh
+
+COPY --chown=ldc:ldc source source
+
 

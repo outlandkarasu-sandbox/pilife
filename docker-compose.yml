@@ -4,4 +4,9 @@ services:
     build:
       context: .
       dockerfile: ./cross-compiler/Dockerfile
+    volumes:
+      - type: bind
+        source: .
+        target: /home/ldc/pilife/dist
+    command: bash -c ". ~/dlang/ldc-1.28.1/activate && dub build --compiler=./ldc-arm.sh && cp pilife ./dist"
 
