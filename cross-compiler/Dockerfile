@@ -1,17 +1,16 @@
 FROM library/debian@sha256:125f346eac7055d8e1de1b036b1bd39781be5bad3d36417c109729d71af0cd73 AS sysroot
 RUN apt update \
   && apt install -y \
-    p7zip-full \
+    xz-utils \
     curl \
   && apt clean \
   && rm -rf /var/lib/apt/lists/* \
-  && curl -L https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2022-01-28/2022-01-28-raspios-bullseye-armhf-lite.zip \
-         -o /tmp/raspios.zip \
-  && 7z e -o/tmp /tmp/raspios.zip '*.img' \
-  && 7z e -spf -o/tmp /tmp/2022-01-28-raspios-bullseye-armhf-lite.img 1.img \
   && mkdir /tmp/sysroot \
-  && 7z e -spf -o/tmp/sysroot /tmp/1.img usr/include/ usr/lib/ \
-  && rm /tmp/raspios.zip /tmp/2022-01-28-raspios-bullseye-armhf-lite.img /tmp/1.img
+  && curl -L https://downloads.raspberrypi.org/raspios_lite_armhf/archive/2022-01-28-13:51/root.tar.xz \
+         -o /tmp/sysroot/root.tar.xz \
+  && cd /tmp/sysroot \
+  && tar xvJf root.tar.xz /usr/lib /usr/include \
+  && rm root.tar.xz
 
 FROM library/debian@sha256:125f346eac7055d8e1de1b036b1bd39781be5bad3d36417c109729d71af0cd73 AS ldc
 RUN apt update \
@@ -28,7 +27,7 @@ RUN apt update \
 USER ldc
 WORKDIR /home/ldc
 
-COPY install.sh install.sh
+COPY cross-compiler/install.sh install.sh
 RUN ./install.sh ldc-1.28.1
 
 FROM ldc as druntime
@@ -59,5 +58,15 @@ FROM ldc
 COPY --from=sysroot --chown=ldc:ldc /tmp/sysroot ./sysroot
 COPY --from=druntime --chown=ldc:ldc /tmp/druntime ./druntime
 
-RUN echo ". ~/dlang/ldc-1.28.1/activate" >> ~/.bashrc
+RUN echo ". ~/dlang/ldc-1.28.1/activate" >> ~/.bashrc \
+  && mkdir ./pilife
+
+COPY --chown=ldc:ldc ldc2.conf ./pilife/ldc2.conf
+COPY --chown=ldc:ldc dub.json ./pilife/dub.json
+COPY --chown=ldc:ldc dub.selections.json ./pilife/dub.selections.json
+#RUN mkdir ./pilife/source \
+# && echo "void main() {}" > ./pilife/source/app.d \
+# && . ./dlang/ldc-1.28.1/activate \
+# && cd ./pilife \
+# && dub build --arch=arm-linux-gnueabihf
 

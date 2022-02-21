@@ -1,5 +1,7 @@
 version: "3.2"
 services:
   cross-compiler:
-    build: ./cross-compiler
+    build:
+      context: .
+      dockerfile: ./cross-compiler/Dockerfile
 
