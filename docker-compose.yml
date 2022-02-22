@@ -1,5 +1,11 @@
-version: "3"
+version: "3.2"
 services:
   cross-compiler:
-    build: ./cross-compiler
+    build:
+      context: .
+      dockerfile: ./cross-compiler/Dockerfile
+    volumes:
+      - type: bind
+        source: .
+        target: /home/ldc/pilife
 
