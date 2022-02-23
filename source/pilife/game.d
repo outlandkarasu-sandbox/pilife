@@ -6,6 +6,29 @@ module pilife.game;
 import std.typecons : Nullable;
 import core.memory : pureMalloc, pureFree;
 
+/**
+Size mixture.
+*/
+mixin template Sized()
+{
+    const @nogc nothrow pure @safe scope
+    {
+        @property size_t width()
+        {
+            return width_;
+        }
+
+        @property size_t height()
+        {
+            return height_;
+        }
+    }
+
+private:
+    size_t width_;
+    size_t height_;
+}
+
 struct Life
 {
 }
@@ -19,6 +42,8 @@ struct Cell
 
 struct LifeGame
 {
+    mixin Sized;
+
     @disable this();
     @disable this(ref return scope LifeGame rhs);
 
@@ -45,22 +70,7 @@ struct LifeGame
         return 0;
     }
 
-    const @nogc nothrow pure @safe scope
-    {
-        @property size_t width()
-        {
-            return width_;
-        }
-
-        @property size_t height()
-        {
-            return height_;
-        }
-    }
-
 private:
-    size_t width_;
-    size_t height_;
     Plane plane1_;
     Plane plane2_;
 }
@@ -77,6 +87,8 @@ private:
 
 struct Plane
 {
+    mixin Sized;
+
     @disable this();
     @disable this(ref return scope Plane rhs);
 
@@ -108,22 +120,7 @@ struct Plane
         return (cells_[position.y * width_ + position.x] = value);
     }
 
-    const @nogc nothrow pure @safe scope
-    {
-        @property size_t width()
-        {
-            return width_;
-        }
-
-        @property size_t height()
-        {
-            return height_;
-        }
-    }
-
 private:
-    size_t width_;
-    size_t height_;
     bool[] cells_;
 }
 
