@@ -53,6 +53,7 @@ struct LifeGame
         this.height_ = height;
         this.plane1_ = Plane(width, height);
         this.plane2_ = Plane(width, height);
+        this.currentIs2_ = false;
     }
 
     /**
@@ -60,6 +61,10 @@ struct LifeGame
     */
     void next() @nogc nothrow pure @safe
     {
+        auto currentPlane = (currentIs2_ ? &plane2_ : &plane1_);
+        auto nextPlane = (currentIs2_ ? &plane1_ : &plane2_);
+        nextPlane.next(*currentPlane);
+        currentIs2_ = !currentIs2_;
     }
 
     /**
@@ -67,12 +72,25 @@ struct LifeGame
     */
     int opApply(Dg)(scope Dg dg) const
     {
+        auto plane = (currentIs2_ ? &plane2_ : &plane1_);
+        foreach (y; height_)
+        {
+            foreach (x; width_)
+            {
+                auto result = dg(x, y, (*plane)[x, y]);
+                if (result)
+                {
+                    return result;
+                }
+            }
+        }
         return 0;
     }
 
 private:
     Plane plane1_;
     Plane plane2_;
+    bool currentIs2_;
 }
 
 ///
@@ -124,18 +142,18 @@ struct Plane
             foreach (ptrdiff_t x; 0 .. width)
             {
                 size_t count = 0;
-                static foreach (offsetY; -1 .. 2)
+                static foreach (yOffset; -1 .. 2)
                 {
-                    static foreach (offsetX; -1 .. 2)
+                    static foreach (xOffset; -1 .. 2)
                     {
-                        if (offsetX != 0 && offsetY != 0 && before[x + offsetX, y + offsetY])
+                        if ((xOffset != 0 || yOffset != 0) && before[x + xOffset, y + yOffset])
                         {
                             ++count;
                         }
                     }
                 }
 
-                if (this[x, y])
+                if (before[x, y])
                 {
                     this[x, y] = (1 < count && count < 4);
                 }
@@ -184,8 +202,8 @@ private:
 ///
 @nogc nothrow pure @safe unittest
 {
-    auto plane1 = Plane(5, 5);
-    auto plane2 = Plane(5, 5);
+    auto plane1 = Plane(100, 100);
+    auto plane2 = Plane(100, 100);
 
     plane1[0, 0] = true;
     plane1[0, 2] = true;
@@ -197,12 +215,12 @@ private:
 
     assert(!plane2[0, 0]);
     assert(!plane2[0, 1]);
+    assert(!plane2[0, 2]);
     assert(!plane2[1, 0]);
+    assert( plane2[1, 1]);
+    assert(!plane2[1, 2]);
     assert(!plane2[2, 0]);
     assert(!plane2[2, 1]);
-    assert(!plane2[2, 2]);
-    assert(!plane2[0, 2]);
-    assert(!plane2[1, 2]);
     assert(!plane2[2, 2]);
 }
 
