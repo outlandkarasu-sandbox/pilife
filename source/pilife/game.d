@@ -108,19 +108,53 @@ struct Plane
         }
     }
 
-    bool opIndex(int x, int y) @nogc nothrow pure @safe scope
+    bool opIndex(ptrdiff_t x, ptrdiff_t y) const @nogc nothrow pure @safe scope
     {
         immutable position = wrapPosition(x, y, width_, height_);
         return cells_[position.y * width_ + position.x];
     }
 
-    bool opIndexAssign(bool value, int x, int y) @nogc nothrow pure @safe
+    void next(ref const(Plane) before) @nogc nothrow pure @safe scope
+        in (before.width == width)
+        in (before.height == height)
+        in (before !is this)
+    {
+        foreach (ptrdiff_t y; 0 .. height)
+        {
+            foreach (ptrdiff_t x; 0 .. width)
+            {
+                size_t count = 0;
+                static foreach (offsetY; -1 .. 2)
+                {
+                    static foreach (offsetX; -1 .. 2)
+                    {
+                        if (offsetX != 0 && offsetY != 0 && before[x + offsetX, y + offsetY])
+                        {
+                            ++count;
+                        }
+                    }
+                }
+
+                if (this[x, y])
+                {
+                    this[x, y] = (1 < count && count < 4);
+                }
+                else
+                {
+                    this[x, y] = (count == 3);
+                }
+            }
+        }
+    }
+
+private:
+
+    bool opIndexAssign(bool value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe
     {
         immutable position = wrapPosition(x, y, width_, height_);
         return (cells_[position.y * width_ + position.x] = value);
     }
 
-private:
     bool[] cells_;
 }
 
@@ -147,16 +181,41 @@ private:
     assert(!plane[-100, -199]);
 }
 
+///
+@nogc nothrow pure @safe unittest
+{
+    auto plane1 = Plane(5, 5);
+    auto plane2 = Plane(5, 5);
+
+    plane1[0, 0] = true;
+    plane1[0, 2] = true;
+    plane1[2, 2] = true;
+
+    plane2.next(plane1);
+
+    assert(plane2[1, 1]);
+
+    assert(!plane2[0, 0]);
+    assert(!plane2[0, 1]);
+    assert(!plane2[1, 0]);
+    assert(!plane2[2, 0]);
+    assert(!plane2[2, 1]);
+    assert(!plane2[2, 2]);
+    assert(!plane2[0, 2]);
+    assert(!plane2[1, 2]);
+    assert(!plane2[2, 2]);
+}
+
 struct Position
 {
     size_t x;
     size_t y;
 }
 
-Position wrapPosition(int x, int y, size_t width, size_t height) @nogc nothrow pure @safe
+Position wrapPosition(ptrdiff_t x, ptrdiff_t y, size_t width, size_t height) @nogc nothrow pure @safe
 {
-    immutable xOffset = x % cast(long) width;
-    immutable yOffset = y % cast(long) height;
+    immutable xOffset = x % cast(ptrdiff_t) width;
+    immutable yOffset = y % cast(ptrdiff_t) height;
     return Position(
         (xOffset >= 0) ? xOffset : xOffset + width,
         (yOffset >= 0) ? yOffset : yOffset + height);
