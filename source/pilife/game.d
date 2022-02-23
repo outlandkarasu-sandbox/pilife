@@ -19,11 +19,16 @@ struct Cell
 struct LifeGame
 {
     @disable this();
+    @disable this(ref return scope LifeGame rhs);
 
     this(uint width, uint height) @nogc nothrow pure @safe scope
     {
         this.width_ = width;
         this.height_ = height;
+    }
+
+    ~this() @nogc nothrow pure @safe scope
+    {
     }
 
     /**
@@ -65,5 +70,11 @@ private:
     auto game = LifeGame(100, 200);
     assert(game.width == 100);
     assert(game.height == 200);
+}
+
+private:
+
+struct Plane
+{
 }
 
