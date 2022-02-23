@@ -29,17 +29,6 @@ private:
     size_t height_;
 }
 
-struct Life
-{
-}
-
-struct Cell
-{
-    size_t x;
-    size_t y;
-    Nullable!Life life;
-}
-
 struct LifeGame
 {
     mixin Sized;
