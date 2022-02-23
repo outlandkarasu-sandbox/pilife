@@ -11,8 +11,8 @@ struct Life
 
 struct Cell
 {
-    uint x;
-    uint y;
+    size_t x;
+    size_tsize_t  y;
     Nullable!Life life;
 }
 
@@ -21,7 +21,7 @@ struct LifeGame
     @disable this();
     @disable this(ref return scope LifeGame rhs);
 
-    this(uint width, uint height) @nogc nothrow pure @safe scope
+    this(size_t width, size_t height) @nogc nothrow pure @safe scope
     {
         this.width_ = width;
         this.height_ = height;
@@ -48,20 +48,20 @@ struct LifeGame
 
     const @nogc nothrow pure @safe scope
     {
-        @property uint width()
+        @property size_t width()
         {
             return width_;
         }
 
-        @property uint height()
+        @property size_t height()
         {
             return height_;
         }
     }
 
 private:
-    uint width_;
-    uint height_;
+    size_t width_;
+    size_t height_;
 }
 
 ///
