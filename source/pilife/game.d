@@ -108,6 +108,19 @@ struct Plane
         return (cells_[position.y * width_ + position.x] = value);
     }
 
+    const @nogc nothrow pure @safe scope
+    {
+        @property size_t width()
+        {
+            return width_;
+        }
+
+        @property size_t height()
+        {
+            return height_;
+        }
+    }
+
 private:
     size_t width_;
     size_t height_;
@@ -118,6 +131,8 @@ private:
 @nogc nothrow pure @safe unittest
 {
     auto plane = Plane(100, 200);
+    assert(plane.width == 100);
+    assert(plane.height == 200);
     assert(!plane[0, 0]);
     assert(!plane[-1, -10]);
     assert(!plane[100000, 100000]);
