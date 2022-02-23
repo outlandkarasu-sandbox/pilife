@@ -56,6 +56,20 @@ struct LifeGame
         this.currentIs2_ = false;
     }
 
+    bool opIndexAssign(bool value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe scope
+    {
+        if (currentIs2_)
+        {
+            plane2_[x, y] = value;
+        }
+        else
+        {
+            plane1_[x, y] = value;
+        }
+        return value;
+    }
+
+
     /**
     life game world translate to next state.
     */
@@ -170,7 +184,8 @@ private:
     bool opIndexAssign(bool value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe
     {
         immutable position = wrapPosition(x, y, width_, height_);
-        return (cells_[position.y * width_ + position.x] = value);
+        cells_[position.y * width_ + position.x] = value;
+        return value;
     }
 
     bool[] cells_;
