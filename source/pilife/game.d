@@ -58,7 +58,6 @@ struct LifeGame
         return value;
     }
 
-
     /**
     life game world translate to next state.
     */
