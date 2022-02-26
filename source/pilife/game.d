@@ -72,14 +72,15 @@ struct LifeGame
     /**
     For each over world cells.
     */
-    int opApply(scope int delegate(size_t, size_t, bool) dg) const
+    int opApply(Dg)(scope Dg dg) const
     {
         auto plane = (currentIs2_ ? &plane2_ : &plane1_);
-        foreach (y; 0 .. height_)
+        foreach (immutable y; 0 .. height_)
         {
-            foreach (x; 0 .. width_)
+            foreach (immutable x; 0 .. width_)
             {
-                auto result = dg(x, y, (*plane)[x, y]);
+                immutable life = (*plane)[x, y];
+                auto result = dg(x, y, life);
                 if (result)
                 {
                     return result;

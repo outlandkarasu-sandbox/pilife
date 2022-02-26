@@ -111,7 +111,7 @@ void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
-        foreach (size_t x, size_t y, bool life; lifeGame)
+        foreach (const size_t x, const size_t y, const bool life; lifeGame)
         {
             if (life)
             {
