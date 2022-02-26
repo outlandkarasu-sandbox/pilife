@@ -4,6 +4,8 @@ Main module.
 
 import std.exception :
     enforce;
+import std.random :
+    choice;
 import std.stdio :
     writefln;
 import std.string :
@@ -21,18 +23,22 @@ import bindbc.sdl :
     SDL_Delay,
     SDL_DestroyRenderer,
     SDL_DestroyWindow,
+    SDL_RenderDrawPoint,
     SDL_SetRenderDrawColor,
     SDL_RenderClear,
     SDL_RenderPresent,
     SDL_Event,
     SDL_PollEvent,
     SDL_QUIT,
+    SDL_Renderer,
     SDL_ShowWindow,
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOW_HIDDEN,
     SDL_RENDERER_ACCELERATED,
     SDL_RENDERER_PRESENTVSYNC;
 
+import pilife.game :
+    LifeGame;
 import pilife.sdl :
     sdlError;
 
@@ -64,21 +70,32 @@ void main()
         sdlError);
     scope(exit) SDL_DestroyRenderer(renderer);
 
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    auto lifeGame = LifeGame(640, 480);
+    foreach (y; 0 .. 480)
+    {
+        foreach (x; 0 .. 640)
+        {
+            lifeGame[x, y] = choice([true, false]);
+        }
+    }
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
     SDL_ShowWindow(window);
 
-    mainLoop();
+    mainLoop(lifeGame, renderer);
 
     scope(exit) SDL_Quit();
 }
 
-void mainLoop()
+void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
 {
     for (SDL_Event event; ;)
     {
+        lifeGame.next();
+
         while (SDL_PollEvent(&event))
         {
             switch (event.type)
@@ -89,7 +106,19 @@ void mainLoop()
                     break;
             }
         }
-        SDL_Delay(13);
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+        foreach (size_t x, size_t y, bool life; lifeGame)
+        {
+            if (life)
+            {
+                SDL_RenderDrawPoint(renderer, cast(int) x, cast(int) y);
+            }
+        }
+        SDL_RenderPresent(renderer);
     }
 }
 
