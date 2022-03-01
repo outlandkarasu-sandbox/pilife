@@ -47,9 +47,6 @@ RGB hueToRGB()(real hue) @nogc nothrow pure @safe
 ///
 @safe unittest
 {
-    auto rgb = hueToRGB(180.0);
-    assert(rgb.red == 0);
-    assert(rgb.green == 255);
-    assert(rgb.blue == 255);
+    assert(hueToRGB(180.0) == RGB(0, 255, 255));
 }
 
