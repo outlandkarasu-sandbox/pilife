@@ -2,6 +2,7 @@
 pilife package.
 */
 
-public import pilife.sdl;
+public import pilife.color;
 public import pilife.game;
+public import pilife.sdl;
 
