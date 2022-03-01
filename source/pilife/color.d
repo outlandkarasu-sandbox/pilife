@@ -7,69 +7,49 @@ import std.math : isClose, abs;
 
 struct RGB
 {
-    real red;
-    real green;
-    real blue;
+    ubyte red;
+    ubyte green;
+    ubyte blue;
 }
 
-struct HSV
+RGB hueToRGB()(real hue) @nogc nothrow pure @safe
 {
-    real hue;
-    real saturation;
-    real value;
-}
-
-import std.stdio : writeln;
-
-RGB toRGB()(auto ref const(HSV) hsv) @nogc nothrow pure @safe
-{
-    if (hsv.saturation.isClose(0.0))
-    {
-        return RGB(hsv.value, hsv.value, hsv.value);
-    }
-
-    immutable c = hsv.saturation * hsv.value;
-    immutable h2 = (hsv.hue % 360.0) / 60.0;
-    immutable x = c * (1.0 - abs(h2 % 2.0 - 1));
-    immutable m = hsv.value - c;
-
-    debug
-    {
-        writeln("c:", c, " h2:", h2, " x:", x, " m:", m);
-    }
+    immutable h2 = (hue % 360.0) / 60.0;
+    immutable x = cast(ubyte)((1.0 - abs(h2 % 2.0 - 1.0)) * 255.0);
 
     if (0.0 <= h2 && h2 < 1.0) {
-        return RGB(c + m, x + m, m);
+        return RGB(255, x, 0);
     }
 
     if (1.0 <= h2 && h2 < 2.0) {
-        return RGB(x + m, c + m, m);
+        return RGB(x, 255, 0);
     }
 
     if (2.0 <= h2 && h2 < 3.0) {
-        return RGB(m, c + m, x + m);
+        return RGB(0, 255, x);
     }
 
     if (3.0 <= h2 && h2 < 4.0) {
-        return RGB(m, x + m, c + m);
+        return RGB(0, x, 255);
     }
 
     if (4.0 <= h2 && h2 < 5.0) {
-        return RGB(x + m, m, c + m);
+        return RGB(x, 0, 255);
     }
 
     if (5.0 <= h2 && h2 < 6.0) {
-        return RGB(c + m, m, x + m);
+        return RGB(255, 0, x);
     }
 
-    return RGB(m, m, m);
+    return RGB(0, 0, 0);
 }
 
 ///
 @safe unittest
 {
-    import std.conv : to;
-    import std.stdio : writeln;
-    writeln(HSV(180.0, 0.5, 0.5).toRGB);
+    auto rgb = hueToRGB(180.0);
+    assert(rgb.red == 0);
+    assert(rgb.green == 255);
+    assert(rgb.blue == 255);
 }
 
