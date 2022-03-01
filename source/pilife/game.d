@@ -6,6 +6,26 @@ module pilife.game;
 import std.typecons : Nullable;
 import core.memory : pureMalloc, pureFree;
 
+import pilife.color : RGB, hueToRGB;
+
+struct Cell
+{
+    static Cell fromHue(float hue) @nogc nothrow pure @safe
+    {
+        return Cell(hue, ubyte.max, hue.hueToRGB);
+    }
+
+    ///
+    @nogc nothrow pure @safe unittest
+    {
+        assert(Cell.fromHue(180.0) == Cell(180.0, ubyte.max, RGB(0, 255, 255)));
+    }
+
+    float hue;
+    ubyte lifespan;
+    RGB color;
+}
+
 /**
 Size mixture.
 */
@@ -45,7 +65,7 @@ struct LifeGame
         this.currentIs2_ = false;
     }
 
-    bool opIndexAssign(bool value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe scope
+    Cell opIndexAssign()(auto ref const(Cell) value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe scope
     {
         if (currentIs2_)
         {
@@ -117,8 +137,9 @@ struct Plane
     {
         this.width_ = width;
         this.height_ = height;
-        immutable byteLength = width * height * bool.sizeof;
-        this.cells_ = cast(bool[]) pureMalloc(byteLength)[0 .. byteLength];
+        immutable byteLength = width * height * Cell.sizeof;
+        this.cells_ = cast(Cell[]) pureMalloc(byteLength)[0 .. byteLength];
+        this.cells_[] = Cell.init;
     }
 
     ~this() @nogc nothrow pure @trusted scope
@@ -129,7 +150,7 @@ struct Plane
         }
     }
 
-    bool opIndex(ptrdiff_t x, ptrdiff_t y) const @nogc nothrow pure @safe scope
+    ref inout(Cell) opIndex(ptrdiff_t x, ptrdiff_t y) inout @nogc nothrow pure @safe return scope
     {
         immutable position = wrapPosition(x, y, width_, height_);
         return cells_[position.y * width_ + position.x];
@@ -145,24 +166,35 @@ struct Plane
             foreach (ptrdiff_t x; 0 .. width)
             {
                 size_t count = 0;
+                real hue = 0.0;
                 static foreach (yOffset; -1 .. 2)
                 {
                     static foreach (xOffset; -1 .. 2)
                     {
-                        if ((xOffset != 0 || yOffset != 0) && before[x + xOffset, y + yOffset])
+                        if (xOffset != 0 || yOffset != 0)
                         {
-                            ++count;
+                            immutable cell = before[x + xOffset, y + yOffset];
+                            if (cell.lifespan > 0)
+                            {
+                                hue += cell.hue;
+                                ++count;
+                            }
                         }
                     }
                 }
 
-                if (before[x, y])
+                immutable lifespan = before[x, y].lifespan;
+                this[x, y].lifespan = lifespan;
+                if (lifespan > 0)
                 {
-                    this[x, y] = (1 < count && count < 4);
+                    this[x, y].lifespan = (1 < count && count < 4) ? lifespan : 0;
                 }
                 else
                 {
-                    this[x, y] = (count == 3);
+                    if (count == 3)
+                    {
+                        this[x, y] = Cell.fromHue(cast(float)(hue / 3.0));
+                    }
                 }
             }
         }
@@ -170,14 +202,14 @@ struct Plane
 
 private:
 
-    bool opIndexAssign(bool value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe
+    Cell opIndexAssign()(auto ref const(Cell) value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe
     {
         immutable position = wrapPosition(x, y, width_, height_);
         cells_[position.y * width_ + position.x] = value;
         return value;
     }
 
-    bool[] cells_;
+    Cell[] cells_;
 }
 
 ///
@@ -186,46 +218,48 @@ private:
     auto plane = Plane(100, 200);
     assert(plane.width == 100);
     assert(plane.height == 200);
-    assert(!plane[0, 0]);
-    assert(!plane[-1, -10]);
-    assert(!plane[100000, 100000]);
+    assert(plane[0, 0].lifespan == 0);
+    assert(plane[-1, -10].lifespan == 0);
+    assert(plane[100000, 100000].lifespan == 0);
 
-    plane[0, 0] = true;
-    assert(plane[0, 0]);
-    assert(plane[100, 200]);
-    assert(plane[-100, -200]);
-    assert(plane[100, 0]);
-    assert(plane[0, 200]);
+    plane[0, 0] = Cell(0.0, ubyte.max);
+    assert(plane[0, 0].lifespan == ubyte.max);
+    assert(plane[100, 200].lifespan == ubyte.max);
+    assert(plane[-100, -200].lifespan == ubyte.max);
+    assert(plane[100, 0].lifespan == ubyte.max);
+    assert(plane[0, 200].lifespan == ubyte.max);
 
-    assert(!plane[99, 200]);
-    assert(!plane[100, 199]);
-    assert(!plane[-99, -200]);
-    assert(!plane[-100, -199]);
+    assert(plane[99, 200].lifespan == 0);
+    assert(plane[100, 199].lifespan == 0);
+    assert(plane[-99, -200].lifespan == 0);
+    assert(plane[-100, -199].lifespan == 0);
 }
 
 ///
 @nogc nothrow pure @safe unittest
 {
+    import std.math : isClose;
+
     auto plane1 = Plane(100, 100);
     auto plane2 = Plane(100, 100);
 
-    plane1[0, 0] = true;
-    plane1[0, 2] = true;
-    plane1[2, 2] = true;
+    plane1[0, 0] = Cell(1.0, ubyte.max);
+    plane1[0, 2] = Cell(0.0, ubyte.max);
+    plane1[2, 2] = Cell(1.0, ubyte.max);
 
     plane2.next(plane1);
 
-    assert(plane2[1, 1]);
+    assert(plane2[1, 1].lifespan == ubyte.max);
+    assert(plane2[1, 1].hue.isClose(2.0 / 3.0));
 
-    assert(!plane2[0, 0]);
-    assert(!plane2[0, 1]);
-    assert(!plane2[0, 2]);
-    assert(!plane2[1, 0]);
-    assert( plane2[1, 1]);
-    assert(!plane2[1, 2]);
-    assert(!plane2[2, 0]);
-    assert(!plane2[2, 1]);
-    assert(!plane2[2, 2]);
+    assert(plane2[0, 0].lifespan == 0);
+    assert(plane2[0, 1].lifespan == 0);
+    assert(plane2[0, 2].lifespan == 0);
+    assert(plane2[1, 0].lifespan == 0);
+    assert(plane2[1, 2].lifespan == 0);
+    assert(plane2[2, 0].lifespan == 0);
+    assert(plane2[2, 1].lifespan == 0);
+    assert(plane2[2, 2].lifespan == 0);
 }
 
 struct Position
