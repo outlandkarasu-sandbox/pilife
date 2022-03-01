@@ -5,7 +5,7 @@ Main module.
 import std.exception :
     enforce;
 import std.random :
-    choice;
+    choice, uniform;
 import std.stdio :
     writefln;
 import std.string :
@@ -71,12 +71,14 @@ void main()
     scope(exit) SDL_DestroyRenderer(renderer);
 
     auto lifeGame = LifeGame(640, 480);
-    auto initialCells = [Cell.fromHue(180.0), Cell.init];
     foreach (y; 0 .. 480)
     {
         foreach (x; 0 .. 640)
         {
-            lifeGame[x, y] = initialCells.choice;
+            if ([true, false].choice)
+            {
+                lifeGame[x, y] = Cell.fromHue(uniform(0.0, 360.0));
+            }
         }
     }
 

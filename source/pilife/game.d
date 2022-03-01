@@ -10,9 +10,10 @@ import pilife.color : RGB, hueToRGB;
 
 struct Cell
 {
-    static Cell fromHue(float hue) @nogc nothrow pure @safe
+    static Cell fromHue(real hue) @nogc nothrow pure @safe
     {
-        return Cell(hue, ubyte.max, hue.hueToRGB);
+        immutable truncatedHue = hue % 360.0;
+        return Cell(truncatedHue, ubyte.max, truncatedHue.hueToRGB);
     }
 
     ///
