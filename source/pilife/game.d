@@ -21,7 +21,7 @@ struct Cell
         assert(Cell.fromHue(180.0) == Cell(180.0, ubyte.max, RGB(0, 255, 255)));
     }
 
-    float hue;
+    float hue = 0.0;
     ubyte lifespan;
     RGB color;
 }
