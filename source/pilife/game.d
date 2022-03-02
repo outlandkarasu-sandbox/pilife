@@ -3,6 +3,7 @@ Life game module.
 */
 module pilife.game;
 
+import std.algorithm : min;
 import std.typecons : Nullable;
 import core.memory : pureMalloc, pureFree;
 
@@ -10,19 +11,19 @@ import pilife.color : RGB, hueToRGB;
 
 struct Cell
 {
-    static Cell fromHue(real hue) @nogc nothrow pure @safe
+    static Cell fromHue(ubyte hue, ubyte lifespan = ubyte.max) @nogc nothrow pure @safe
     {
-        immutable truncatedHue = hue % 360.0;
-        return Cell(truncatedHue, ubyte.max, truncatedHue.hueToRGB);
+        return Cell(hue, lifespan, (hue * 360.0 / ubyte.max).hueToRGB);
     }
 
     ///
     @nogc nothrow pure @safe unittest
     {
-        assert(Cell.fromHue(180.0) == Cell(180.0, ubyte.max, RGB(0, 255, 255)));
+        assert(Cell.fromHue(128) == Cell(128, ubyte.max, RGB(0, 251, 255)));
+        assert(Cell.fromHue(128, 100) == Cell(128, 100, RGB(0, 251, 255)));
     }
 
-    float hue = 0.0;
+    ubyte hue;
     ubyte lifespan;
     RGB color;
 }
@@ -167,7 +168,8 @@ struct Plane
             foreach (ptrdiff_t x; 0 .. width)
             {
                 size_t count = 0;
-                real hue = 0.0;
+                uint sumLifespan = 0;
+                uint sumHue = 0;
                 static foreach (yOffset; -1 .. 2)
                 {
                     static foreach (xOffset; -1 .. 2)
@@ -177,25 +179,29 @@ struct Plane
                             immutable cell = before[x + xOffset, y + yOffset];
                             if (cell.lifespan > 0)
                             {
-                                hue += cell.hue;
+                                sumHue += cell.hue;
+                                sumLifespan += cell.lifespan;
                                 ++count;
                             }
                         }
                     }
                 }
 
-                immutable lifespan = before[x, y].lifespan;
-                this[x, y].lifespan = lifespan;
-                if (lifespan > 0)
+                immutable beforeCell = before[x, y];
+                if (beforeCell.lifespan > 0)
                 {
-                    this[x, y].lifespan = (1 < count && count < 4) ? lifespan : 0;
+                    this[x, y] = Cell(
+                        beforeCell.hue,
+                        cast(ubyte)((1 < count && count < 4) ? beforeCell.lifespan - 1 : 0),
+                        beforeCell.color);
+                }
+                else if (count == 3)
+                {
+                    this[x, y] = Cell.fromHue(cast(ubyte) sumHue);
                 }
                 else
                 {
-                    if (count == 3)
-                    {
-                        this[x, y] = Cell.fromHue(cast(float)(hue / 3.0));
-                    }
+                    this[x, y] = Cell.fromHue(0, 0);
                 }
             }
         }
@@ -223,7 +229,7 @@ private:
     assert(plane[-1, -10].lifespan == 0);
     assert(plane[100000, 100000].lifespan == 0);
 
-    plane[0, 0] = Cell(0.0, ubyte.max);
+    plane[0, 0] = Cell(0, ubyte.max);
     assert(plane[0, 0].lifespan == ubyte.max);
     assert(plane[100, 200].lifespan == ubyte.max);
     assert(plane[-100, -200].lifespan == ubyte.max);
@@ -244,14 +250,14 @@ private:
     auto plane1 = Plane(100, 100);
     auto plane2 = Plane(100, 100);
 
-    plane1[0, 0] = Cell(1.0, ubyte.max);
-    plane1[0, 2] = Cell(0.0, ubyte.max);
-    plane1[2, 2] = Cell(1.0, ubyte.max);
+    plane1[0, 0] = Cell(1, ubyte.max);
+    plane1[0, 2] = Cell(0, ubyte.max);
+    plane1[2, 2] = Cell(1, ubyte.max);
 
     plane2.next(plane1);
 
     assert(plane2[1, 1].lifespan == ubyte.max);
-    assert(plane2[1, 1].hue.isClose(2.0 / 3.0));
+    assert(plane2[1, 1].hue == 1);
 
     assert(plane2[0, 0].lifespan == 0);
     assert(plane2[0, 1].lifespan == 0);

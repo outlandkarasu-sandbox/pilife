@@ -77,7 +77,7 @@ void main()
         {
             if ([true, false].choice)
             {
-                lifeGame[x, y] = Cell.fromHue(uniform(0.0, 360.0));
+                lifeGame[x, y] = Cell.fromHue(cast(ubyte) uniform(0, ubyte.max));
             }
         }
     }
@@ -117,7 +117,12 @@ void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
         {
             if (life.lifespan > 0)
             {
-                SDL_SetRenderDrawColor(renderer, life.color.red, life.color.green, life.color.blue, 255);
+                SDL_SetRenderDrawColor(
+                    renderer,
+                    life.color.red,
+                    life.color.green,
+                    life.color.blue,
+                    life.lifespan);
                 SDL_RenderDrawPoint(renderer, cast(int) x, cast(int) y);
             }
         }
