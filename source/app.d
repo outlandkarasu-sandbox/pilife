@@ -5,7 +5,7 @@ Main module.
 import std.exception :
     enforce;
 import std.random :
-    choice;
+    choice, uniform;
 import std.stdio :
     writefln;
 import std.string :
@@ -38,7 +38,7 @@ import bindbc.sdl :
     SDL_RENDERER_PRESENTVSYNC;
 
 import pilife.game :
-    LifeGame;
+    LifeGame, Cell;
 import pilife.sdl :
     sdlError;
 
@@ -75,7 +75,10 @@ void main()
     {
         foreach (x; 0 .. 640)
         {
-            lifeGame[x, y] = choice([true, false]);
+            if ([true, false].choice)
+            {
+                lifeGame[x, y] = Cell.fromHue(cast(ubyte) uniform(0, ubyte.max));
+            }
         }
     }
 
@@ -109,12 +112,17 @@ void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
-        foreach (const size_t x, const size_t y, const bool life; lifeGame)
+        foreach (const size_t x, const size_t y, const Cell life; lifeGame)
         {
-            if (life)
+            if (life.lifespan > 0)
             {
+                SDL_SetRenderDrawColor(
+                    renderer,
+                    life.color.red,
+                    life.color.green,
+                    life.color.blue,
+                    life.lifespan);
                 SDL_RenderDrawPoint(renderer, cast(int) x, cast(int) y);
             }
         }
