@@ -13,6 +13,7 @@ import std.string :
 
 import bindbc.sdl :
     loadSDL,
+    SDL_INIT_TIMER,
     SDL_INIT_VIDEO,
     SDL_Init,
     SDL_Quit,
@@ -36,7 +37,9 @@ import bindbc.sdl :
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOW_HIDDEN,
     SDL_RENDERER_ACCELERATED,
-    SDL_RENDERER_PRESENTVSYNC;
+    SDL_RENDERER_PRESENTVSYNC,
+    SDL_GetPerformanceCounter,
+    SDL_GetPerformanceFrequency;
 
 import pilife.game :
     LifeGame, Cell;
@@ -55,7 +58,7 @@ void main()
 
     writefln("loaded SDL: %s", loadedSDLVersion);
 
-    enforceSDL(SDL_Init(SDL_INIT_VIDEO) == 0);
+    enforceSDL(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == 0);
 
     auto window = enforceSDL(SDL_CreateWindow(
         "pilife",
@@ -96,9 +99,20 @@ void main()
 
 void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
 {
+    immutable frequency = SDL_GetPerformanceFrequency();
+    size_t frameCount;
+    size_t lastTick;
     bool running = false;
-    for (SDL_Event event; ;)
+    for (SDL_Event event; ; ++frameCount)
     {
+        immutable currentTick = SDL_GetPerformanceCounter();
+        if (currentTick - lastTick > frequency)
+        {
+            writefln("FPS: %d", frameCount);
+            lastTick = currentTick;
+            frameCount = 0;
+        }
+
         if (running)
         {
             lifeGame.next();
