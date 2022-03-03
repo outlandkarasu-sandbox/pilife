@@ -41,6 +41,7 @@ import bindbc.sdl :
 import pilife.game :
     LifeGame, Cell;
 import pilife.sdl :
+    enforceSDL,
     sdlError;
 
 /**
@@ -54,9 +55,9 @@ void main()
 
     writefln("loaded SDL: %s", loadedSDLVersion);
 
-    enforce(SDL_Init(SDL_INIT_VIDEO) == 0, sdlError);
+    enforceSDL(SDL_Init(SDL_INIT_VIDEO) == 0);
 
-    auto window = enforce(SDL_CreateWindow(
+    auto window = enforceSDL(SDL_CreateWindow(
         "pilife",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
@@ -64,11 +65,10 @@ void main()
         SDL_WINDOW_HIDDEN));
     scope(exit) SDL_DestroyWindow(window);
 
-    auto renderer = enforce(SDL_CreateRenderer(
+    auto renderer = enforceSDL(SDL_CreateRenderer(
         window,
         -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
-        sdlError);
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
     scope(exit) SDL_DestroyRenderer(renderer);
 
     auto lifeGame = LifeGame(640, 480);
