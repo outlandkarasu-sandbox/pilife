@@ -32,6 +32,7 @@ import bindbc.sdl :
     SDL_QUIT,
     SDL_Renderer,
     SDL_ShowWindow,
+    SDL_KEYDOWN,
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOW_HIDDEN,
     SDL_RENDERER_ACCELERATED,
@@ -95,14 +96,21 @@ void main()
 
 void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
 {
+    bool running = false;
     for (SDL_Event event; ;)
     {
-        lifeGame.next();
+        if (running)
+        {
+            lifeGame.next();
+        }
 
         while (SDL_PollEvent(&event))
         {
             switch (event.type)
             {
+                case SDL_KEYDOWN:
+                    running = !running;
+                    break;
                 case SDL_QUIT:
                     return;
                 default:
