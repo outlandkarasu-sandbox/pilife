@@ -39,7 +39,9 @@ import bindbc.sdl :
     SDL_RENDERER_ACCELERATED,
     SDL_RENDERER_PRESENTVSYNC,
     SDL_GetPerformanceCounter,
-    SDL_GetPerformanceFrequency;
+    SDL_GetPerformanceFrequency,
+    SDL_SetRenderDrawBlendMode,
+    SDL_BLENDMODE_BLEND;
 
 import pilife.game :
     LifeGame, Cell;
@@ -73,6 +75,8 @@ void main()
         -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
     scope(exit) SDL_DestroyRenderer(renderer);
+
+    enforceSDL(SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) == 0);
 
     auto lifeGame = LifeGame(640, 480);
     foreach (y; 0 .. 480)
