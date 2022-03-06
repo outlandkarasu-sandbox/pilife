@@ -3,7 +3,7 @@ Life game module.
 */
 module pilife.game;
 
-import std.algorithm : min;
+import std.algorithm : min, max;
 import std.typecons : Nullable;
 import core.memory : pureMalloc, pureFree;
 
@@ -168,7 +168,7 @@ struct Plane
             foreach (ptrdiff_t x; 0 .. width)
             {
                 size_t count = 0;
-                uint sumLifespan = 0;
+                uint maxLifespan = 0;
                 uint sumHue = 0;
                 static foreach (yOffset; -1 .. 2)
                 {
@@ -180,7 +180,7 @@ struct Plane
                             if (cell.lifespan > 0)
                             {
                                 sumHue += cell.hue;
-                                sumLifespan += cell.lifespan;
+                                maxLifespan = max(maxLifespan, cell.lifespan);
                                 ++count;
                             }
                         }
@@ -188,6 +188,7 @@ struct Plane
                 }
 
                 immutable beforeCell = before[x, y];
+                maxLifespan = max(maxLifespan, beforeCell.lifespan);
                 if (beforeCell.lifespan > 0)
                 {
                     this[x, y] = Cell(
@@ -197,7 +198,7 @@ struct Plane
                 }
                 else if (count == 3)
                 {
-                    this[x, y] = Cell.fromHue(cast(ubyte) sumHue);
+                    this[x, y] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
                 }
                 else
                 {
@@ -257,7 +258,7 @@ private:
     plane2.next(plane1);
 
     assert(plane2[1, 1].lifespan == ubyte.max);
-    assert(plane2[1, 1].hue == 1);
+    assert(plane2[1, 1].hue == 2);
 
     assert(plane2[0, 0].lifespan == 0);
     assert(plane2[0, 1].lifespan == 0);
