@@ -27,11 +27,14 @@ import bindbc.sdl :
     SDL_FreeSurface,
     SDL_GetWindowSurface,
     SDL_Event,
+    SDL_LockSurface,
     SDL_PollEvent,
     SDL_QUIT,
     SDL_Renderer,
+    SDL_SetSurfaceRLE,
     SDL_ShowWindow,
     SDL_Surface,
+    SDL_UnlockSurface,
     SDL_UpdateWindowSurface,
     SDL_Window,
     SDL_KEYDOWN,
@@ -108,6 +111,7 @@ void main()
         BLUE_MASK,
         ALPHA_MASK));
     scope(exit) SDL_FreeSurface(lifeGameSurface);
+    enforceSDL(SDL_SetSurfaceRLE(lifeGameSurface, 1) == 0);
 
     auto lifeGame = LifeGame(lifeGameSurface.w, lifeGameSurface.h);
     foreach (y; 0 .. lifeGameSurface.h)
@@ -168,20 +172,25 @@ void mainLoop(
             }
         }
 
-        uint[] pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
-        foreach (const size_t x, const size_t y, const Cell life; lifeGame)
         {
-            if (life.lifespan > 0)
+            enforceSDL(SDL_LockSurface(surface) == 0);
+            scope(exit) SDL_UnlockSurface(surface);
+
+            uint[] pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
+            foreach (const size_t x, const size_t y, const Cell life; lifeGame)
             {
-                pixels[y * surface.w + x] =
-                    (life.color.red << RED_SHIFT) |
-                    (life.color.green << GREEN_SHIFT) |
-                    (life.color.blue << BLUE_SHIFT) |
-                    (life.lifespan << ALPHA_SHIFT);
-            }
-            else
-            {
-                pixels[y * surface.w + x] = 0xff << ALPHA_SHIFT;
+                if (life.lifespan > 0)
+                {
+                    pixels[y * surface.w + x] =
+                        (life.color.red << RED_SHIFT) |
+                        (life.color.green << GREEN_SHIFT) |
+                        (life.color.blue << BLUE_SHIFT) |
+                        (life.lifespan << ALPHA_SHIFT);
+                }
+                else
+                {
+                    pixels[y * surface.w + x] = 0xff << ALPHA_SHIFT;
+                }
             }
         }
 
