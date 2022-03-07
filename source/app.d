@@ -19,20 +19,24 @@ import bindbc.sdl :
     SDL_Quit,
     sdlSupport,
     unloadSDL,
-    SDL_CreateRenderer,
+    SDL_BlitSurface,
+    SDL_CreateRGBSurface,
     SDL_CreateWindow,
     SDL_Delay,
-    SDL_DestroyRenderer,
     SDL_DestroyWindow,
-    SDL_RenderDrawPoint,
-    SDL_SetRenderDrawColor,
-    SDL_RenderClear,
-    SDL_RenderPresent,
+    SDL_FreeSurface,
+    SDL_GetWindowSurface,
     SDL_Event,
+    SDL_LockSurface,
     SDL_PollEvent,
     SDL_QUIT,
     SDL_Renderer,
+    SDL_SetSurfaceRLE,
     SDL_ShowWindow,
+    SDL_Surface,
+    SDL_UnlockSurface,
+    SDL_UpdateWindowSurface,
+    SDL_Window,
     SDL_KEYDOWN,
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOW_HIDDEN,
@@ -48,6 +52,32 @@ import pilife.game :
 import pilife.sdl :
     enforceSDL,
     sdlError;
+
+version (BigEndian)
+{
+    enum {
+        RED_SHIFT = 24,
+        GREEN_SHIFT = 16,
+        BLUE_SHIFT = 8,
+        ALPHA_SHIFT = 0,
+    };
+}
+else
+{
+    enum {
+        RED_SHIFT = 0,
+        GREEN_SHIFT = 8,
+        BLUE_SHIFT = 16,
+        ALPHA_SHIFT = 24,
+    };
+}
+
+enum {
+    RED_MASK   = 0xff << RED_SHIFT,
+    GREEN_MASK = 0xff << GREEN_SHIFT,
+    BLUE_MASK  = 0xff << BLUE_SHIFT,
+    ALPHA_MASK = 0xff << ALPHA_SHIFT,
+};
 
 /**
 Main function.
@@ -69,19 +99,24 @@ void main()
         640, 480,
         SDL_WINDOW_HIDDEN));
     scope(exit) SDL_DestroyWindow(window);
+    auto windowSurface = enforceSDL(SDL_GetWindowSurface(window));
 
-    auto renderer = enforceSDL(SDL_CreateRenderer(
-        window,
-        -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
-    scope(exit) SDL_DestroyRenderer(renderer);
+    auto lifeGameSurface = enforceSDL(SDL_CreateRGBSurface(
+        0,
+        windowSurface.w,
+        windowSurface.h,
+        32,
+        RED_MASK,
+        GREEN_MASK,
+        BLUE_MASK,
+        ALPHA_MASK));
+    scope(exit) SDL_FreeSurface(lifeGameSurface);
+    enforceSDL(SDL_SetSurfaceRLE(lifeGameSurface, 1) == 0);
 
-    enforceSDL(SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) == 0);
-
-    auto lifeGame = LifeGame(640, 480);
-    foreach (y; 0 .. 480)
+    auto lifeGame = LifeGame(lifeGameSurface.w, lifeGameSurface.h);
+    foreach (y; 0 .. lifeGameSurface.h)
     {
-        foreach (x; 0 .. 640)
+        foreach (x; 0 .. lifeGameSurface.w)
         {
             if ([true, false].choice)
             {
@@ -90,18 +125,19 @@ void main()
         }
     }
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
-
+    SDL_UpdateWindowSurface(window);
     SDL_ShowWindow(window);
 
-    mainLoop(lifeGame, renderer);
+    mainLoop(lifeGame, lifeGameSurface, windowSurface, window);
 
     scope(exit) SDL_Quit();
 }
 
-void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
+void mainLoop(
+    ref LifeGame lifeGame,
+    SDL_Surface* surface,
+    SDL_Surface* windowSurface,
+    SDL_Window* window)
 {
     immutable frequency = SDL_GetPerformanceFrequency();
     size_t frameCount;
@@ -136,23 +172,30 @@ void mainLoop(ref LifeGame lifeGame, SDL_Renderer* renderer)
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-        SDL_RenderClear(renderer);
-
-        foreach (const size_t x, const size_t y, const Cell life; lifeGame)
         {
-            if (life.lifespan > 0)
+            enforceSDL(SDL_LockSurface(surface) == 0);
+            scope(exit) SDL_UnlockSurface(surface);
+
+            uint[] pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
+            foreach (const size_t x, const size_t y, const Cell life; lifeGame)
             {
-                SDL_SetRenderDrawColor(
-                    renderer,
-                    life.color.red,
-                    life.color.green,
-                    life.color.blue,
-                    life.lifespan);
-                SDL_RenderDrawPoint(renderer, cast(int) x, cast(int) y);
+                if (life.lifespan > 0)
+                {
+                    pixels[y * surface.w + x] =
+                        (life.color.red << RED_SHIFT) |
+                        (life.color.green << GREEN_SHIFT) |
+                        (life.color.blue << BLUE_SHIFT) |
+                        (life.lifespan << ALPHA_SHIFT);
+                }
+                else
+                {
+                    pixels[y * surface.w + x] = 0xff << ALPHA_SHIFT;
+                }
             }
         }
-        SDL_RenderPresent(renderer);
+
+        SDL_BlitSurface(surface, null, windowSurface, null);
+        SDL_UpdateWindowSurface(window);
     }
 }
 
