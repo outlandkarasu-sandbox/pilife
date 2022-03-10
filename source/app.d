@@ -200,7 +200,7 @@ void mainLoop(
                 }
                 else
                 {
-                    pixels[y * surface.w + x] = 0xff << ALPHA_SHIFT;
+                    pixels[y * surface.w + x] = 0x8 << ALPHA_SHIFT;
                 }
             }
         }
