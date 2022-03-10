@@ -4,6 +4,8 @@ Life game module.
 module pilife.game;
 
 import std.algorithm : min, max;
+import std.parallelism : parallel;
+import std.range : iota;
 import std.typecons : Nullable;
 import core.memory : pureMalloc, pureFree;
 
@@ -83,34 +85,18 @@ struct LifeGame
     /**
     life game world translate to next state.
     */
-    void next() @nogc nothrow pure @safe
+    void next() @safe
     {
-        auto currentPlane = (currentIs2_ ? &plane2_ : &plane1_);
         auto nextPlane = (currentIs2_ ? &plane1_ : &plane2_);
-        nextPlane.next(*currentPlane);
+        nextPlane.next(currentPlane);
         currentIs2_ = !currentIs2_;
     }
 
-    /**
-    For each over world cells.
-    */
-    int opApply(Dg)(scope Dg dg) const
+    @property ref const(Plane) currentPlane() const @nogc nothrow pure @safe return scope
     {
-        auto plane = (currentIs2_ ? &plane2_ : &plane1_);
-        foreach (immutable y; 0 .. height_)
-        {
-            foreach (immutable x; 0 .. width_)
-            {
-                immutable life = (*plane)[x, y];
-                auto result = dg(x, y, life);
-                if (result)
-                {
-                    return result;
-                }
-            }
-        }
-        return 0;
+        return (currentIs2_ ? plane2_ : plane1_);
     }
+
 
 private:
     Plane plane1_;
@@ -126,14 +112,37 @@ private:
     assert(game.height == 200);
 }
 
-private:
-
+/**
+Life game plane.
+*/
 struct Plane
 {
     mixin Sized;
 
     @disable this();
     @disable this(ref return scope Plane rhs);
+
+    /**
+    For each over world cells.
+    */
+    int opApply(Dg)(scope Dg dg) const
+    {
+        foreach (immutable y; 0 .. height)
+        {
+            foreach (immutable x; 0 .. width)
+            {
+                immutable life = this[x, y];
+                auto result = dg(x, y, life);
+                if (result)
+                {
+                    return result;
+                }
+            }
+        }
+        return 0;
+    }
+
+private:
 
     this(size_t width, size_t height) @nogc nothrow pure @trusted scope
     {
@@ -158,12 +167,12 @@ struct Plane
         return cells_[position.y * width_ + position.x];
     }
 
-    void next(ref const(Plane) before) @nogc nothrow pure @safe scope
+    void next(ref const(Plane) before) @trusted scope
         in (before.width == width)
         in (before.height == height)
         in (before !is this)
     {
-        foreach (ptrdiff_t y; 0 .. height)
+        foreach (ptrdiff_t y; parallel(iota(cast(ptrdiff_t) height)))
         {
             foreach (ptrdiff_t x; 0 .. width)
             {
@@ -207,8 +216,6 @@ struct Plane
             }
         }
     }
-
-private:
 
     Cell opIndexAssign()(auto ref const(Cell) value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe
     {
@@ -269,6 +276,8 @@ private:
     assert(plane2[2, 1].lifespan == 0);
     assert(plane2[2, 2].lifespan == 0);
 }
+
+private:
 
 struct Position
 {

@@ -4,6 +4,8 @@ Main module.
 
 import std.exception :
     enforce;
+import std.parallelism :
+    scopedTask, taskPool;
 import std.random :
     choice, uniform;
 import std.stdio :
@@ -143,19 +145,28 @@ void mainLoop(
     size_t frameCount;
     size_t lastTick;
     bool running = false;
+
+    void nextState()
+    {
+        if (running)
+        {
+            lifeGame.next();
+        }
+    }
+
     for (SDL_Event event; ; ++frameCount)
     {
+        auto currentPlane = &lifeGame.currentPlane();
+        auto task = scopedTask(&nextState);
+        taskPool.put(task);
+        scope(success) task.yieldForce();
+
         immutable currentTick = SDL_GetPerformanceCounter();
         if (currentTick - lastTick > frequency)
         {
             writefln("FPS: %d", frameCount);
             lastTick = currentTick;
             frameCount = 0;
-        }
-
-        if (running)
-        {
-            lifeGame.next();
         }
 
         while (SDL_PollEvent(&event))
@@ -177,7 +188,7 @@ void mainLoop(
             scope(exit) SDL_UnlockSurface(surface);
 
             uint[] pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
-            foreach (const size_t x, const size_t y, const Cell life; lifeGame)
+            foreach (const size_t x, const size_t y, const Cell life; *currentPlane)
             {
                 if (life.lifespan > 0)
                 {
