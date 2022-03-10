@@ -85,10 +85,14 @@ struct LifeGame
     */
     void next() @nogc nothrow pure @safe
     {
-        auto currentPlane = (currentIs2_ ? &plane2_ : &plane1_);
         auto nextPlane = (currentIs2_ ? &plane1_ : &plane2_);
-        nextPlane.next(*currentPlane);
+        nextPlane.next(currentPlane);
         currentIs2_ = !currentIs2_;
+    }
+
+    @property ref const(Plane) currentPlane() const @nogc nothrow pure @safe return scope
+    {
+        return (currentIs2_ ? plane2_ : plane1_);
     }
 
     /**
