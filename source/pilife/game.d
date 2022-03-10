@@ -95,26 +95,6 @@ struct LifeGame
         return (currentIs2_ ? plane2_ : plane1_);
     }
 
-    /**
-    For each over world cells.
-    */
-    int opApply(Dg)(scope Dg dg) const
-    {
-        auto plane = (currentIs2_ ? &plane2_ : &plane1_);
-        foreach (immutable y; 0 .. height_)
-        {
-            foreach (immutable x; 0 .. width_)
-            {
-                immutable life = (*plane)[x, y];
-                auto result = dg(x, y, life);
-                if (result)
-                {
-                    return result;
-                }
-            }
-        }
-        return 0;
-    }
 
 private:
     Plane plane1_;
@@ -130,14 +110,37 @@ private:
     assert(game.height == 200);
 }
 
-private:
-
+/**
+Life game plane.
+*/
 struct Plane
 {
     mixin Sized;
 
     @disable this();
     @disable this(ref return scope Plane rhs);
+
+    /**
+    For each over world cells.
+    */
+    int opApply(Dg)(scope Dg dg) const
+    {
+        foreach (immutable y; 0 .. height)
+        {
+            foreach (immutable x; 0 .. width)
+            {
+                immutable life = this[x, y];
+                auto result = dg(x, y, life);
+                if (result)
+                {
+                    return result;
+                }
+            }
+        }
+        return 0;
+    }
+
+private:
 
     this(size_t width, size_t height) @nogc nothrow pure @trusted scope
     {
@@ -212,8 +215,6 @@ struct Plane
         }
     }
 
-private:
-
     Cell opIndexAssign()(auto ref const(Cell) value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe
     {
         immutable position = wrapPosition(x, y, width_, height_);
@@ -273,6 +274,8 @@ private:
     assert(plane2[2, 1].lifespan == 0);
     assert(plane2[2, 2].lifespan == 0);
 }
+
+private:
 
 struct Position
 {
