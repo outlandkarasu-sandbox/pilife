@@ -4,6 +4,8 @@ Life game module.
 module pilife.game;
 
 import std.algorithm : min, max;
+import std.parallelism : parallel;
+import std.range : iota;
 import std.typecons : Nullable;
 import core.memory : pureMalloc, pureFree;
 
@@ -83,7 +85,7 @@ struct LifeGame
     /**
     life game world translate to next state.
     */
-    void next() @nogc nothrow pure @safe
+    void next() @safe
     {
         auto nextPlane = (currentIs2_ ? &plane1_ : &plane2_);
         nextPlane.next(currentPlane);
@@ -165,12 +167,12 @@ private:
         return cells_[position.y * width_ + position.x];
     }
 
-    void next(ref const(Plane) before) @nogc nothrow pure @safe scope
+    void next(ref const(Plane) before) @trusted scope
         in (before.width == width)
         in (before.height == height)
         in (before !is this)
     {
-        foreach (ptrdiff_t y; 0 .. height)
+        foreach (ptrdiff_t y; parallel(iota(cast(ptrdiff_t) height)))
         {
             foreach (ptrdiff_t x; 0 .. width)
             {
