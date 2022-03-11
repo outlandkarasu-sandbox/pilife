@@ -197,6 +197,8 @@ private:
     {
         foreach (ptrdiff_t y; parallel(iota(cast(ptrdiff_t) height)))
         {
+            immutable rowIndex = y * width;
+
             foreach (ptrdiff_t x; 0 .. width)
             {
                 size_t count = 0;
@@ -219,22 +221,23 @@ private:
                     }
                 }
 
-                immutable beforeCell = before[x, y];
+                immutable cellIndex = rowIndex + x;
+                immutable beforeCell = before.cells_[cellIndex];
                 maxLifespan = max(maxLifespan, beforeCell.lifespan);
                 if (beforeCell.live && 1 < count && count < 4)
                 {
-                    this[x, y] = Cell(
+                    cells_[cellIndex] = Cell(
                         beforeCell.hue,
                         cast(ubyte)(beforeCell.lifespan - 1),
                         beforeCell.color);
                 }
                 else if (!beforeCell.live && count == 3)
                 {
-                    this[x, y] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
+                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
                 }
                 else
                 {
-                    this[x, y] = Cell.empty;
+                    cells_[cellIndex] = Cell.empty;
                 }
             }
         }
