@@ -18,6 +18,8 @@ import bindbc.sdl :
     SDL_INIT_TIMER,
     SDL_INIT_VIDEO,
     SDL_Init,
+    SDLK_SPACE,
+    SDLK_ESCAPE,
     SDL_Quit,
     sdlSupport,
     unloadSDL,
@@ -39,6 +41,7 @@ import bindbc.sdl :
     SDL_UnlockSurface,
     SDL_UpdateWindowSurface,
     SDL_Window,
+    SDL_WINDOW_FULLSCREEN,
     SDL_KEYDOWN,
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOW_HIDDEN,
@@ -52,6 +55,7 @@ import bindbc.sdl :
 import pilife.game :
     LifeGame, Cell;
 import pilife.sdl :
+    getDisplays,
     enforceSDL,
     sdlError;
 
@@ -94,12 +98,14 @@ void main()
 
     enforceSDL(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == 0);
 
+    writefln("displays: %s", getDisplays());
+
     auto window = enforceSDL(SDL_CreateWindow(
         "pilife",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        640, 480,
-        SDL_WINDOW_HIDDEN));
+        720, 450,
+        SDL_WINDOW_FULLSCREEN));
     scope(exit) SDL_DestroyWindow(window);
     auto windowSurface = enforceSDL(SDL_GetWindowSurface(window));
 
@@ -174,7 +180,14 @@ void mainLoop(
             switch (event.type)
             {
                 case SDL_KEYDOWN:
-                    running = !running;
+                    if (event.key.keysym.sym == SDLK_SPACE)
+                    {
+                        running = !running;
+                    }
+                    else if (event.key.keysym.sym == SDLK_ESCAPE)
+                    {
+                        return;
+                    }
                     break;
                 case SDL_QUIT:
                     return;
