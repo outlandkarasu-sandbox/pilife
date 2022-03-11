@@ -53,7 +53,9 @@ import bindbc.sdl :
     SDL_BLENDMODE_BLEND;
 
 import pilife.game :
-    LifeGame, Cell;
+    LifeGame,
+    Cell,
+    Plane;
 import pilife.sdl :
     getDisplays,
     enforceSDL,
@@ -147,10 +149,9 @@ void mainLoop(
     SDL_Surface* windowSurface,
     SDL_Window* window)
 {
-    immutable frequency = SDL_GetPerformanceFrequency();
-    size_t frameCount;
-    size_t lastTick;
     bool running = false;
+    uint[] pixels;
+    const(Plane)* currentPlane;
 
     void nextState()
     {
@@ -160,20 +161,41 @@ void mainLoop(
         }
     }
 
-    for (SDL_Event event; ; ++frameCount)
+    void renderCells()
     {
-        auto currentPlane = &lifeGame.currentPlane();
-        auto task = scopedTask(&nextState);
-        taskPool.put(task);
-        scope(success) task.yieldForce();
-
-        immutable currentTick = SDL_GetPerformanceCounter();
-        if (currentTick - lastTick > frequency)
+        pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
+        foreach (const size_t x, const size_t y, scope ref const(Cell) cell; *currentPlane)
         {
-            writefln("FPS: %d", frameCount);
-            lastTick = currentTick;
-            frameCount = 0;
+            if (cell.live)
+            {
+                pixels[y * surface.w + x] =
+                    (cell.color.red << RED_SHIFT) |
+                    (cell.color.green << GREEN_SHIFT) |
+                    (cell.color.blue << BLUE_SHIFT) |
+                    (cell.lifespan << ALPHA_SHIFT);
+            }
+            else
+            {
+                pixels[y * surface.w + x] = 0x8 << ALPHA_SHIFT;
+            }
         }
+    }
+
+    immutable frequency = SDL_GetPerformanceFrequency();
+    immutable frameFrequency = frequency / 60;
+    size_t frameCount;
+    size_t lastTick;
+    size_t lastFrameTick;
+    for (SDL_Event event; ; ++frameCount, lastFrameTick = SDL_GetPerformanceCounter())
+    {
+        currentPlane = &lifeGame.currentPlane();
+        auto nextStateTask = scopedTask(&nextState);
+        taskPool.put(nextStateTask);
+        scope(success) nextStateTask.yieldForce();
+
+        enforceSDL(SDL_LockSurface(surface) == 0);
+        auto renderCellsTask = scopedTask(&renderCells);
+        taskPool.put(renderCellsTask);
 
         while (SDL_PollEvent(&event))
         {
@@ -196,29 +218,28 @@ void mainLoop(
             }
         }
 
-        {
-            enforceSDL(SDL_LockSurface(surface) == 0);
-            scope(exit) SDL_UnlockSurface(surface);
+        renderCellsTask.yieldForce();
+        SDL_UnlockSurface(surface);
+        SDL_BlitSurface(surface, null, windowSurface, null);
 
-            scope pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
-            foreach (const size_t x, const size_t y, scope ref const(Cell) cell; *currentPlane)
+        for (;;)
+        {
+            immutable currentTick = SDL_GetPerformanceCounter();
+            if (currentTick - lastTick > frequency)
             {
-                if (cell.live)
-                {
-                    pixels[y * surface.w + x] =
-                        (cell.color.red << RED_SHIFT) |
-                        (cell.color.green << GREEN_SHIFT) |
-                        (cell.color.blue << BLUE_SHIFT) |
-                        (cell.lifespan << ALPHA_SHIFT);
-                }
-                else
-                {
-                    pixels[y * surface.w + x] = 0x8 << ALPHA_SHIFT;
-                }
+                writefln("FPS: %d", frameCount);
+                lastTick = currentTick;
+                frameCount = 0;
             }
+
+            if (currentTick - lastFrameTick > frameFrequency)
+            {
+                break;
+            }
+
+            SDL_Delay(0);
         }
 
-        SDL_BlitSurface(surface, null, windowSurface, null);
         SDL_UpdateWindowSurface(window);
     }
 }
