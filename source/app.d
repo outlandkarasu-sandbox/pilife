@@ -187,16 +187,16 @@ void mainLoop(
             enforceSDL(SDL_LockSurface(surface) == 0);
             scope(exit) SDL_UnlockSurface(surface);
 
-            uint[] pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
-            foreach (const size_t x, const size_t y, const Cell life; *currentPlane)
+            scope pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
+            foreach (const size_t x, const size_t y, scope ref const(Cell) cell; *currentPlane)
             {
-                if (life.lifespan > 0)
+                if (cell.live)
                 {
                     pixels[y * surface.w + x] =
-                        (life.color.red << RED_SHIFT) |
-                        (life.color.green << GREEN_SHIFT) |
-                        (life.color.blue << BLUE_SHIFT) |
-                        (life.lifespan << ALPHA_SHIFT);
+                        (cell.color.red << RED_SHIFT) |
+                        (cell.color.green << GREEN_SHIFT) |
+                        (cell.color.blue << BLUE_SHIFT) |
+                        (cell.lifespan << ALPHA_SHIFT);
                 }
                 else
                 {

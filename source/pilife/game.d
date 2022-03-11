@@ -152,10 +152,10 @@ struct Plane
     {
         foreach (immutable y; 0 .. height)
         {
+            immutable rowIndex = y * width;
             foreach (immutable x; 0 .. width)
             {
-                immutable life = this[x, y];
-                auto result = dg(x, y, life);
+                auto result = dg(x, y, cells_[rowIndex + x]);
                 if (result)
                 {
                     return result;
