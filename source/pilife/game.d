@@ -221,20 +221,20 @@ private:
 
                 immutable beforeCell = before[x, y];
                 maxLifespan = max(maxLifespan, beforeCell.lifespan);
-                if (beforeCell.lifespan > 0)
+                if (beforeCell.live && 1 < count && count < 4)
                 {
                     this[x, y] = Cell(
                         beforeCell.hue,
-                        cast(ubyte)((1 < count && count < 4) ? beforeCell.lifespan - 1 : 0),
+                        cast(ubyte)(beforeCell.lifespan - 1),
                         beforeCell.color);
                 }
-                else if (count == 3)
+                else if (!beforeCell.live && count == 3)
                 {
                     this[x, y] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
                 }
                 else
                 {
-                    this[x, y] = Cell.fromHue(0, 0);
+                    this[x, y] = Cell.empty;
                 }
             }
         }
