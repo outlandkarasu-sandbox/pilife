@@ -18,14 +18,14 @@ struct Cell
 {
     static Cell fromHue(ubyte hue, ubyte lifespan = ubyte.max) @nogc nothrow pure @safe
     {
-        return Cell(hue, lifespan, (hue * 360.0 / ubyte.max).hueToRGB);
+        return Cell(hue, lifespan, hue.hueToRGB);
     }
 
     ///
     @nogc nothrow pure @safe unittest
     {
-        assert(Cell.fromHue(128) == Cell(128, ubyte.max, RGB(0, 251, 255)));
-        assert(Cell.fromHue(128, 100) == Cell(128, 100, RGB(0, 251, 255)));
+        assert(Cell.fromHue(129) == Cell(129, ubyte.max, RGB(0, 255, 255)));
+        assert(Cell.fromHue(129, 100) == Cell(129, 100, RGB(0, 255, 255)));
     }
 
     /**
