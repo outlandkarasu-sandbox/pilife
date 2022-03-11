@@ -11,18 +11,41 @@ import core.memory : pureMalloc, pureFree;
 
 import pilife.color : RGB, hueToRGB;
 
+/**
+Life game cell.
+*/
 struct Cell
 {
     static Cell fromHue(ubyte hue, ubyte lifespan = ubyte.max) @nogc nothrow pure @safe
     {
-        return Cell(hue, lifespan, (hue * 360.0 / ubyte.max).hueToRGB);
+        return Cell(hue, lifespan, hue.hueToRGB);
     }
 
     ///
     @nogc nothrow pure @safe unittest
     {
-        assert(Cell.fromHue(128) == Cell(128, ubyte.max, RGB(0, 251, 255)));
-        assert(Cell.fromHue(128, 100) == Cell(128, 100, RGB(0, 251, 255)));
+        assert(Cell.fromHue(129) == Cell(129, ubyte.max, RGB(0, 255, 255)));
+        assert(Cell.fromHue(129, 100) == Cell(129, 100, RGB(0, 255, 255)));
+    }
+
+    /**
+    Empty cell value.
+    */
+    static immutable empty = Cell.init;
+
+    /**
+    is live.
+    */
+    @property bool live() const @nogc nothrow pure @safe scope
+    {
+        return lifespan > 0;
+    }
+
+    ///
+    @nogc nothrow pure @safe unittest
+    {
+        assert(!Cell.empty.live);
+        assert(Cell.fromHue(0).live);
     }
 
     ubyte hue;
@@ -150,7 +173,7 @@ private:
         this.height_ = height;
         immutable byteLength = width * height * Cell.sizeof;
         this.cells_ = cast(Cell[]) pureMalloc(byteLength)[0 .. byteLength];
-        this.cells_[] = Cell.init;
+        this.cells_[] = Cell.empty;
     }
 
     ~this() @nogc nothrow pure @trusted scope
@@ -174,6 +197,8 @@ private:
     {
         foreach (ptrdiff_t y; parallel(iota(cast(ptrdiff_t) height)))
         {
+            immutable rowIndex = y * width;
+
             foreach (ptrdiff_t x; 0 .. width)
             {
                 size_t count = 0;
@@ -196,22 +221,23 @@ private:
                     }
                 }
 
-                immutable beforeCell = before[x, y];
+                immutable cellIndex = rowIndex + x;
+                immutable beforeCell = before.cells_[cellIndex];
                 maxLifespan = max(maxLifespan, beforeCell.lifespan);
-                if (beforeCell.lifespan > 0)
+                if (beforeCell.live && 1 < count && count < 4)
                 {
-                    this[x, y] = Cell(
+                    cells_[cellIndex] = Cell(
                         beforeCell.hue,
-                        cast(ubyte)((1 < count && count < 4) ? beforeCell.lifespan - 1 : 0),
+                        cast(ubyte)(beforeCell.lifespan - 1),
                         beforeCell.color);
                 }
-                else if (count == 3)
+                else if (!beforeCell.live && count == 3)
                 {
-                    this[x, y] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
+                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
                 }
                 else
                 {
-                    this[x, y] = Cell.fromHue(0, 0);
+                    cells_[cellIndex] = Cell.empty;
                 }
             }
         }
@@ -251,7 +277,7 @@ private:
 }
 
 ///
-@nogc nothrow pure @safe unittest
+@safe unittest
 {
     import std.math : isClose;
 
