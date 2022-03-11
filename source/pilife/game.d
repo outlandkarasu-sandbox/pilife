@@ -11,6 +11,9 @@ import core.memory : pureMalloc, pureFree;
 
 import pilife.color : RGB, hueToRGB;
 
+/**
+Life game cell.
+*/
 struct Cell
 {
     static Cell fromHue(ubyte hue, ubyte lifespan = ubyte.max) @nogc nothrow pure @safe
@@ -23,6 +26,26 @@ struct Cell
     {
         assert(Cell.fromHue(128) == Cell(128, ubyte.max, RGB(0, 251, 255)));
         assert(Cell.fromHue(128, 100) == Cell(128, 100, RGB(0, 251, 255)));
+    }
+
+    /**
+    Empty cell value.
+    */
+    static immutable empty = Cell.init;
+
+    /**
+    is live.
+    */
+    @property bool live() const @nogc nothrow pure @safe scope
+    {
+        return lifespan > 0;
+    }
+
+    ///
+    @nogc nothrow pure @safe unittest
+    {
+        assert(!Cell.empty.live);
+        assert(Cell.fromHue(0).live);
     }
 
     ubyte hue;
@@ -150,7 +173,7 @@ private:
         this.height_ = height;
         immutable byteLength = width * height * Cell.sizeof;
         this.cells_ = cast(Cell[]) pureMalloc(byteLength)[0 .. byteLength];
-        this.cells_[] = Cell.init;
+        this.cells_[] = Cell.empty;
     }
 
     ~this() @nogc nothrow pure @trusted scope
@@ -251,7 +274,7 @@ private:
 }
 
 ///
-@nogc nothrow pure @safe unittest
+@safe unittest
 {
     import std.math : isClose;
 
