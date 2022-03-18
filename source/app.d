@@ -30,6 +30,14 @@ import bindbc.sdl :
     SDL_DestroyWindow,
     SDL_FreeSurface,
     SDL_GetWindowSurface,
+    SDL_GL_CreateContext,
+    SDL_GL_DeleteContext,
+    SDL_GL_SetAttribute,
+    SDL_GL_CONTEXT_MAJOR_VERSION,
+    SDL_GL_CONTEXT_MINOR_VERSION,
+    SDL_GL_CONTEXT_PROFILE_MASK,
+    SDL_GL_CONTEXT_PROFILE_CORE,
+    SDL_GL_DOUBLEBUFFER,
     SDL_Event,
     SDL_LockSurface,
     SDL_PollEvent,
@@ -45,12 +53,19 @@ import bindbc.sdl :
     SDL_KEYDOWN,
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOW_HIDDEN,
+    SDL_WINDOW_OPENGL,
     SDL_RENDERER_ACCELERATED,
     SDL_RENDERER_PRESENTVSYNC,
     SDL_GetPerformanceCounter,
     SDL_GetPerformanceFrequency,
     SDL_SetRenderDrawBlendMode,
     SDL_BLENDMODE_BLEND;
+
+import bindbc.opengl :
+    loadOpenGL,
+    unloadOpenGL,
+    glSupport,
+    GLSupport;
 
 import pilife.game :
     LifeGame,
@@ -99,7 +114,14 @@ void main()
     writefln("loaded SDL: %s", loadedSDLVersion);
 
     enforceSDL(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == 0);
+    scope(exit) SDL_Quit();
 
+    lifeGameOpenGL();
+    //lifeGame2D();
+}
+
+void lifeGame2D()
+{
     writefln("displays: %s", getDisplays());
 
     auto window = enforceSDL(SDL_CreateWindow(
@@ -139,9 +161,8 @@ void main()
     SDL_ShowWindow(window);
 
     mainLoop(lifeGame, lifeGameSurface, windowSurface, window);
-
-    scope(exit) SDL_Quit();
 }
+
 
 void mainLoop(
     ref LifeGame lifeGame,
@@ -242,5 +263,30 @@ void mainLoop(
 
         SDL_UpdateWindowSurface(window);
     }
+}
+
+void lifeGameOpenGL()
+{
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+    auto window = enforceSDL(SDL_CreateWindow(
+        "pilife",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        640, 480,
+        SDL_WINDOW_OPENGL));
+    scope(exit) SDL_DestroyWindow(window);
+
+    auto openGlContext = enforceSDL(SDL_GL_CreateContext(window));
+    scope(exit) SDL_GL_DeleteContext(openGlContext);
+
+    immutable loadedOpenGLVersion = loadOpenGL();
+    enforce(loadedOpenGLVersion >= glSupport, format("loadOpenGL error: %s", loadedOpenGLVersion));
+    scope(exit) unloadOpenGL();
+
+    writefln("loaded OpenGL: %s", loadedOpenGLVersion);
 }
 
