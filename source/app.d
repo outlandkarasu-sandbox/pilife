@@ -38,6 +38,7 @@ import bindbc.sdl :
     SDL_GL_CONTEXT_PROFILE_MASK,
     SDL_GL_CONTEXT_PROFILE_CORE,
     SDL_GL_DOUBLEBUFFER,
+    SDL_GL_SwapWindow,
     SDL_Event,
     SDL_LockSurface,
     SDL_PollEvent,
@@ -65,7 +66,61 @@ import bindbc.opengl :
     loadOpenGL,
     unloadOpenGL,
     glSupport,
-    GLSupport;
+    GLSupport,
+    GLuint,
+    GLushort,
+    GLfloat,
+    GLvoid,
+    glGenTextures,
+    glDeleteTextures,
+    glGenBuffers,
+    glDeleteBuffers,
+    glBindBuffer,
+    glPixelStorei,
+    glBindTexture,
+    glBufferData,
+    GL_ARRAY_BUFFER,
+    GL_ELEMENT_ARRAY_BUFFER,
+    GL_STATIC_DRAW,
+    GL_TEXTURE_2D,
+    GL_TEXTURE_WRAP_S,
+    GL_TEXTURE_WRAP_T,
+    GL_REPEAT,
+    GL_NEAREST,
+    GL_RGB,
+    GL_UNSIGNED_BYTE,
+    GL_UNPACK_ALIGNMENT,
+    GL_FLOAT,
+    GL_FALSE,
+    GL_TRUE,
+    glTexParameteri,
+    glTexImage2D,
+    GL_TEXTURE_MIN_FILTER,
+    GL_TEXTURE_MAG_FILTER,
+    glGenVertexArrays,
+    glDeleteVertexArrays,
+    glBindVertexArray,
+    glVertexAttribPointer,
+    glEnableVertexAttribArray,
+    glDisableVertexAttribArray,
+    glClearColor,
+    glClear,
+    GL_COLOR_BUFFER_BIT,
+    GL_DEPTH_BUFFER_BIT,
+    glUseProgram,
+    glDeleteProgram,
+    glActiveTexture,
+    glDrawElements,
+    glFlush,
+    glGetUniformLocation,
+    glUniform1i,
+    GL_TEXTURE0,
+    GL_TRIANGLES,
+    GLsizei,
+    GL_UNSIGNED_SHORT,
+    glViewport,
+    glEnable,
+    GL_DEPTH_TEST;
 
 import pilife.game :
     LifeGame,
@@ -75,6 +130,7 @@ import pilife.sdl :
     getDisplays,
     enforceSDL,
     sdlError;
+import pilife.opengl : createShaderProgram;
 
 version (BigEndian)
 {
@@ -265,6 +321,50 @@ void mainLoop(
     }
 }
 
+struct Vertex
+{
+    GLfloat x;
+    GLfloat y;
+    GLfloat z;
+    GLfloat u;
+    GLfloat v;
+}
+
+immutable vertices = [
+    Vertex(-1.0f,  1.0f, 0.0f, 0.0f, 0.0f),
+    Vertex( 1.0f,  1.0f, 0.0f, 1.0f, 0.0f),
+    Vertex(-1.0f, -1.0f, 0.0f, 0.0f, 1.0f),
+    Vertex( 1.0f, -1.0f, 0.0f, 1.0f, 1.0f),
+];
+
+immutable GLushort[] indices = [0, 1, 2, 2, 1, 3];
+
+immutable vertexShader = `
+#version 330 core
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec2 uv;
+
+out vec2 vertexUv;
+
+void main() {
+    gl_Position = vec4(position, 1.0f);
+    vertexUv = uv;
+}
+`;
+
+immutable fragmentShader = `
+#version 330 core
+
+in vec2 vertexUv;
+out vec4 color;
+
+uniform sampler2D textureSampler;
+
+void main() {
+    color = vec4(texture(textureSampler, vertexUv).rgb, 1.0f);
+}
+`;
+
 void lifeGameOpenGL()
 {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -288,5 +388,141 @@ void lifeGameOpenGL()
     scope(exit) unloadOpenGL();
 
     writefln("loaded OpenGL: %s", loadedOpenGLVersion);
+
+    // setup viewport
+    glViewport(0, 0, 640, 480);
+    glEnable(GL_DEPTH_TEST);
+
+    // create VBO
+    GLuint verticesBuffer;
+    glGenBuffers(1, &verticesBuffer);
+    scope(exit) glDeleteBuffers(1, &verticesBuffer);
+
+    glBindBuffer(GL_ARRAY_BUFFER, verticesBuffer);
+    glBufferData(GL_ARRAY_BUFFER, vertices.length * Vertex.sizeof, vertices.ptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // create IBO
+    GLuint elementBuffer;
+    glGenBuffers(1, &elementBuffer);
+    scope(exit) glDeleteBuffers(1, &elementBuffer);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.length * GLushort.sizeof, indices.ptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // generate texture
+    GLuint texture;
+    glGenTextures(1, &texture);
+    scope(exit) glDeleteTextures(1, &texture);
+
+    immutable ubyte[] texturePixels = [
+        255,   0,   0,
+          0, 255,   0,
+          0,   0, 255,
+          0,   0,   0
+    ];
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, texturePixels.ptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // create VAO
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    scope(exit) glDeleteVertexArrays(1, &vao);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, verticesBuffer);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, Vertex.sizeof, cast(const(GLvoid)*) Vertex.x.offsetof);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, Vertex.sizeof, cast(const(GLvoid)*) Vertex.u.offsetof);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+    glBindVertexArray(0);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+    // build shader program.
+    immutable programId = createShaderProgram(vertexShader, fragmentShader);
+    scope(exit) glDeleteProgram(programId);
+    auto textureLocation = glGetUniformLocation(programId, "textureSampler");
+
+    immutable frequency = SDL_GetPerformanceFrequency();
+    immutable frameFrequency = frequency / 60;
+    size_t frameCount;
+    size_t lastTick;
+    size_t lastFrameTick;
+    bool running = false;
+    for (SDL_Event event; ; ++frameCount, lastFrameTick = SDL_GetPerformanceCounter())
+    {
+        while (SDL_PollEvent(&event))
+        {
+            switch (event.type)
+            {
+                case SDL_KEYDOWN:
+                    if (event.key.keysym.sym == SDLK_SPACE)
+                    {
+                        running = !running;
+                    }
+                    else if (event.key.keysym.sym == SDLK_ESCAPE)
+                    {
+                        return;
+                    }
+                    break;
+                case SDL_QUIT:
+                    return;
+                default:
+                    break;
+            }
+        }
+
+        // wait next frame.
+        for (;;)
+        {
+            immutable currentTick = SDL_GetPerformanceCounter();
+            if (currentTick - lastTick > frequency)
+            {
+                writefln("FPS: %d", frameCount);
+                lastTick = currentTick;
+                frameCount = 0;
+            }
+
+            if (currentTick - lastFrameTick > frameFrequency)
+            {
+                break;
+            }
+
+            SDL_Delay(0);
+        }
+
+        // clear window
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // setup elements
+        glUseProgram(programId);
+        glBindVertexArray(vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(textureLocation, 0);
+
+        glDrawElements(GL_TRIANGLES, cast(GLsizei) indices.length, GL_UNSIGNED_SHORT, cast(const(GLvoid)*) 0);
+
+        glBindVertexArray(0);
+        glUseProgram(0);
+        glFlush();
+
+        SDL_GL_SwapWindow(window);
+    }
 }
 
