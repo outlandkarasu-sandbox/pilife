@@ -3,7 +3,9 @@ Life game module.
 */
 module pilife.game;
 
-import std.algorithm : min, max;
+import std.algorithm : min, max, reverse, map;
+import std.array : array;
+import std.exception : assumeUnique;
 import std.parallelism : parallel;
 import std.range : iota;
 import std.typecons : Nullable;
@@ -231,7 +233,7 @@ private:
                         cast(ubyte)(beforeCell.lifespan - 1),
                         beforeCell.color);
                 }
-                else if (!beforeCell.live && count == 3)
+                else if (!beforeCell.live && count == 3 && maxLifespan > 1)
                 {
                     cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
                 }
@@ -303,29 +305,28 @@ private:
     assert(plane2[2, 2].lifespan == 0);
 }
 
-immutable bool[][] GLIDER_RIGHT_BOTTOM = [
+immutable bool[][] GLIDER = [
     [false, true, false],
     [false, false, true],
     [true, true, true],
 ]; 
 
-immutable bool[][] GLIDER_RIGHT_TOP = [
-    [true, true, true],
-    [false, false, true],
-    [false, true, false],
+immutable bool[][] SPACE_SHIP = [
+    [true, false, false, true, false],
+    [false, false, false, false, true],
+    [true, false, false, false, true],
+    [false, true, true, true, true],
 ]; 
 
-immutable bool[][] GLIDER_LEFT_BOTTOM = [
-    [false, true, false],
-    [true, false, false],
-    [true, true, true],
-]; 
+immutable(bool[][]) flipH(return scope const bool[][] life) nothrow pure @trusted
+{
+    return life.map!((a) => assumeUnique(a.dup.reverse)).array;
+}
 
-immutable bool[][] GLIDER_LEFT_TOP = [
-    [true, true, true],
-    [true, false, false],
-    [false, true, false],
-]; 
+immutable(bool[][]) flipV(return scope const bool[][] life) nothrow pure @trusted
+{
+    return assumeUnique(life.dup.reverse);
+}
 
 private:
 
