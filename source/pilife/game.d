@@ -303,6 +303,30 @@ private:
     assert(plane2[2, 2].lifespan == 0);
 }
 
+immutable bool[][] GLIDER_RIGHT_BOTTOM = [
+    [false, true, false],
+    [false, false, true],
+    [true, true, true],
+]; 
+
+immutable bool[][] GLIDER_RIGHT_TOP = [
+    [true, true, true],
+    [false, false, true],
+    [false, true, false],
+]; 
+
+immutable bool[][] GLIDER_LEFT_BOTTOM = [
+    [false, true, false],
+    [true, false, false],
+    [true, true, true],
+]; 
+
+immutable bool[][] GLIDER_LEFT_TOP = [
+    [true, true, true],
+    [true, false, false],
+    [false, true, false],
+]; 
+
 private:
 
 struct Position
