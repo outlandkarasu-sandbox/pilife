@@ -94,6 +94,24 @@ struct LifeGame
         this.currentIs2_ = false;
     }
 
+    void addLife(ptrdiff_t x, ptrdiff_t y, scope const bool[][] life, ubyte hue) @nogc nothrow pure @safe scope
+    {
+        foreach (lr, row; life)
+        {
+            foreach (lc, b; row)
+            {
+                if (b)
+                {
+                    this[x + lc, y + lr] = Cell.fromHue(hue);
+                }
+                else
+                {
+                    this[x + lc, y + lr] = Cell.init;
+                }
+            }
+        }
+    }
+
     Cell opIndexAssign()(auto ref const(Cell) value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe scope
     {
         if (currentIs2_)
