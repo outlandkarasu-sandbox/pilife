@@ -334,12 +334,24 @@ immutable bool[][] GLIDER = [
     [true, true, true],
 ]; 
 
-immutable bool[][] SPACE_SHIP = [
+immutable bool[][] SPACE_SHIP_R = [
     [true, false, false, true, false],
     [false, false, false, false, true],
     [true, false, false, false, true],
     [false, true, true, true, true],
 ]; 
+
+immutable bool[][] SPACE_SHIP_L = SPACE_SHIP_R.flipH;
+
+immutable bool[][] GLIDER_FLOWER = [
+    [true, true, true, false, true, true, true],
+    [true, false, false, false, false, false, true],
+    [false, true, false, false, false, true, false],
+    [false, false, false, false, false, false, false],
+    [false, true, false, false, false, true, false],
+    [true, false, false, false, false, false, true],
+    [true, true, true, false, true, true, true],
+];
 
 immutable(bool[][]) flipH(return scope const bool[][] life) nothrow pure @trusted
 {

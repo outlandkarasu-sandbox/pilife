@@ -143,7 +143,10 @@ import pilife.game :
     LifeGame,
     Cell,
     Plane,
-    GLIDER;
+    GLIDER,
+    GLIDER_FLOWER,
+    SPACE_SHIP_R,
+    SPACE_SHIP_L;
 import pilife.sdl :
     getDisplays,
     enforceSDL,
@@ -248,7 +251,7 @@ void mainLoop(
     {
         if (pushedA)
         {
-             lifeGame.addLife(360, 200, GLIDER, randomHue());
+             lifeGame.addLife(360, 200, GLIDER_FLOWER, randomHue());
              pushedA = false;
         }
 
@@ -260,7 +263,7 @@ void mainLoop(
 
         if (pushedC)
         {
-             lifeGame.addLife(700, 200, GLIDER, randomHue());
+             lifeGame.addLife(700, 200, SPACE_SHIP_L, randomHue());
              pushedC = false;
         }
 
