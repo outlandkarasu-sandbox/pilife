@@ -223,7 +223,7 @@ private:
             {
                 size_t count = 0;
                 uint maxLifespan = 0;
-                uint sumHue = 0;
+                uint sumHue = before[x, y].hue;
                 static foreach (yOffset; -1 .. 2)
                 {
                     static foreach (xOffset; -1 .. 2)
@@ -233,7 +233,10 @@ private:
                             immutable cell = before[x + xOffset, y + yOffset];
                             if (cell.lifespan > 0)
                             {
-                                sumHue += cell.hue;
+                                if (cell.hue != sumHue)
+                                {
+                                    sumHue += cell.hue;
+                                }
                                 maxLifespan = max(maxLifespan, cell.lifespan);
                                 ++count;
                             }
@@ -253,7 +256,7 @@ private:
                 }
                 else if (!beforeCell.live && count == 3 && maxLifespan > 1)
                 {
-                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
+                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte)(maxLifespan - 1));
                 }
                 else
                 {

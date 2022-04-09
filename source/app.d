@@ -18,6 +18,10 @@ import bindbc.sdl :
     SDL_INIT_TIMER,
     SDL_INIT_VIDEO,
     SDL_Init,
+    SDLK_a,
+    SDLK_b,
+    SDLK_c,
+    SDLK_RETURN,
     SDLK_SPACE,
     SDLK_ESCAPE,
     SDL_Quit,
@@ -138,7 +142,8 @@ import bindbc.opengl :
 import pilife.game :
     LifeGame,
     Cell,
-    Plane;
+    Plane,
+    GLIDER;
 import pilife.sdl :
     getDisplays,
     enforceSDL,
@@ -187,8 +192,8 @@ void main()
     enforceSDL(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == 0);
     scope(exit) SDL_Quit();
 
-    lifeGameOpenGL();
-    //lifeGame2D();
+    //lifeGameOpenGL();
+    lifeGame2D();
 }
 
 void lifeGame2D()
@@ -200,7 +205,7 @@ void lifeGame2D()
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         720, 450,
-        SDL_WINDOW_FULLSCREEN));
+        0)); //SDL_WINDOW_FULLSCREEN));
     scope(exit) SDL_DestroyWindow(window);
     auto windowSurface = enforceSDL(SDL_GetWindowSurface(window));
 
@@ -217,16 +222,6 @@ void lifeGame2D()
     enforceSDL(SDL_SetSurfaceRLE(lifeGameSurface, 1) == 0);
 
     auto lifeGame = LifeGame(lifeGameSurface.w, lifeGameSurface.h);
-    foreach (y; 0 .. lifeGameSurface.h)
-    {
-        foreach (x; 0 .. lifeGameSurface.w)
-        {
-            if ([true, false].choice)
-            {
-                lifeGame[x, y] = Cell.fromHue(cast(ubyte) uniform(0, ubyte.max));
-            }
-        }
-    }
 
     SDL_UpdateWindowSurface(window);
     SDL_ShowWindow(window);
@@ -244,11 +239,48 @@ void mainLoop(
     bool running = false;
     uint[] pixels;
     const(Plane)* currentPlane;
+    bool pushedA;
+    bool pushedB;
+    bool pushedC;
+    bool pushedSpace;
 
     void nextState()
     {
         if (running)
         {
+            if (pushedA)
+            {
+                 lifeGame.addLife(360, 200, GLIDER, randomHue());
+                 pushedA = false;
+            }
+
+            if (pushedB)
+            {
+                 lifeGame.addLife(0, 200, GLIDER, randomHue());
+                 pushedB = false;
+            }
+
+            if (pushedC)
+            {
+                 lifeGame.addLife(700, 200, GLIDER, randomHue());
+                 pushedC = false;
+            }
+
+            if (pushedSpace)
+            {
+                foreach (y; 0 .. lifeGame.height)
+                {
+                    foreach (x; 0 .. lifeGame.width)
+                    {
+                        if ([true, false].choice)
+                        {
+                            lifeGame[x, y] = Cell.fromHue(randomHue());
+                        }
+                    }
+                }
+                pushedSpace = false;
+            }
+
             lifeGame.next();
         }
     }
@@ -294,13 +326,27 @@ void mainLoop(
             switch (event.type)
             {
                 case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_SPACE)
+                    switch (event.key.keysym.sym)
                     {
-                        running = !running;
-                    }
-                    else if (event.key.keysym.sym == SDLK_ESCAPE)
-                    {
-                        return;
+                        case SDLK_RETURN:
+                            running = !running;
+                            break;
+                        case SDLK_SPACE:
+                            pushedSpace = true;
+                            break;
+                        case SDLK_ESCAPE:
+                            return;
+                        case SDLK_a:
+                            pushedA = true;
+                            break;
+                        case SDLK_b:
+                            pushedB = true;
+                            break;
+                        case SDLK_c:
+                            pushedC = true;
+                            break;
+                        default:
+                            break;
                     }
                     break;
                 case SDL_QUIT:
@@ -563,3 +609,9 @@ void lifeGameOpenGL()
     }
 }
 
+private:
+
+ubyte randomHue() @safe
+{
+    return cast(ubyte) uniform(0, ubyte.max);
+}
