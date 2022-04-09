@@ -244,44 +244,39 @@ void mainLoop(
     bool pushedC;
     bool pushedSpace;
 
-    void nextState()
+    void processInput()
     {
-        if (running)
+        if (pushedA)
         {
-            if (pushedA)
-            {
-                 lifeGame.addLife(360, 200, GLIDER, randomHue());
-                 pushedA = false;
-            }
+             lifeGame.addLife(360, 200, GLIDER, randomHue());
+             pushedA = false;
+        }
 
-            if (pushedB)
-            {
-                 lifeGame.addLife(0, 200, GLIDER, randomHue());
-                 pushedB = false;
-            }
+        if (pushedB)
+        {
+             lifeGame.addLife(0, 200, GLIDER, randomHue());
+             pushedB = false;
+        }
 
-            if (pushedC)
-            {
-                 lifeGame.addLife(700, 200, GLIDER, randomHue());
-                 pushedC = false;
-            }
+        if (pushedC)
+        {
+             lifeGame.addLife(700, 200, GLIDER, randomHue());
+             pushedC = false;
+        }
 
-            if (pushedSpace)
+        if (pushedSpace)
+        {
+            foreach (y; 0 .. lifeGame.height)
             {
-                foreach (y; 0 .. lifeGame.height)
+                foreach (x; 0 .. lifeGame.width)
                 {
-                    foreach (x; 0 .. lifeGame.width)
+                    if ([true, false].choice)
                     {
-                        if ([true, false].choice)
-                        {
-                            lifeGame[x, y] = Cell.fromHue(randomHue());
-                        }
+                        lifeGame[x, y] = Cell.fromHue(randomHue());
                     }
                 }
-                pushedSpace = false;
             }
-
-            lifeGame.next();
+            pushedSpace = false;
         }
     }
 
@@ -296,7 +291,7 @@ void mainLoop(
                     (cell.color.red << RED_SHIFT) |
                     (cell.color.green << GREEN_SHIFT) |
                     (cell.color.blue << BLUE_SHIFT) |
-                    (cell.lifespan << ALPHA_SHIFT);
+                    ((cast(ubyte)(cell.lifespan * 256 / Cell.maxLifespan)) << ALPHA_SHIFT);
             }
             else
             {
@@ -313,7 +308,8 @@ void mainLoop(
     for (SDL_Event event; ; ++frameCount, lastFrameTick = SDL_GetPerformanceCounter())
     {
         currentPlane = &lifeGame.currentPlane();
-        auto nextStateTask = scopedTask(&nextState);
+        processInput();
+        auto nextStateTask = scopedTask(&lifeGame.next);
         taskPool.put(nextStateTask);
         scope(success) nextStateTask.yieldForce();
 

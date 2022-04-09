@@ -18,7 +18,9 @@ Life game cell.
 */
 struct Cell
 {
-    static Cell fromHue(ubyte hue, ubyte lifespan = ubyte.max) @nogc nothrow pure @safe
+    static immutable ushort maxLifespan = 30 * 60;
+
+    static Cell fromHue(ubyte hue, ushort lifespan = maxLifespan) @nogc nothrow pure @safe
     {
         return Cell(hue, lifespan, hue.hueToRGB);
     }
@@ -26,7 +28,7 @@ struct Cell
     ///
     @nogc nothrow pure @safe unittest
     {
-        assert(Cell.fromHue(129) == Cell(129, ubyte.max, RGB(0, 255, 255)));
+        assert(Cell.fromHue(129) == Cell(129, maxLifespan, RGB(0, 255, 255)));
         assert(Cell.fromHue(129, 100) == Cell(129, 100, RGB(0, 255, 255)));
     }
 
@@ -51,7 +53,7 @@ struct Cell
     }
 
     ubyte hue;
-    ubyte lifespan;
+    ushort lifespan;
     RGB color;
 }
 
@@ -251,12 +253,12 @@ private:
                 {
                     cells_[cellIndex] = Cell(
                         beforeCell.hue,
-                        cast(ubyte)(beforeCell.lifespan - 1),
+                        cast(ushort)(beforeCell.lifespan - 1),
                         beforeCell.color);
                 }
                 else if (!beforeCell.live && count == 3 && maxLifespan > 1)
                 {
-                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte)(maxLifespan - 1));
+                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ushort)(maxLifespan - 1));
                 }
                 else
                 {
