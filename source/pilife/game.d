@@ -3,7 +3,9 @@ Life game module.
 */
 module pilife.game;
 
-import std.algorithm : min, max;
+import std.algorithm : min, max, reverse, map;
+import std.array : array;
+import std.exception : assumeUnique;
 import std.parallelism : parallel;
 import std.range : iota;
 import std.typecons : Nullable;
@@ -90,6 +92,24 @@ struct LifeGame
         this.plane1_ = Plane(width, height);
         this.plane2_ = Plane(width, height);
         this.currentIs2_ = false;
+    }
+
+    void addLife(ptrdiff_t x, ptrdiff_t y, scope const bool[][] life, ubyte hue) @nogc nothrow pure @safe scope
+    {
+        foreach (lr, row; life)
+        {
+            foreach (lc, b; row)
+            {
+                if (b)
+                {
+                    this[x + lc, y + lr] = Cell.fromHue(hue);
+                }
+                else
+                {
+                    this[x + lc, y + lr] = Cell.init;
+                }
+            }
+        }
     }
 
     Cell opIndexAssign()(auto ref const(Cell) value, ptrdiff_t x, ptrdiff_t y) @nogc nothrow pure @safe scope
@@ -203,7 +223,7 @@ private:
             {
                 size_t count = 0;
                 uint maxLifespan = 0;
-                uint sumHue = 0;
+                uint sumHue = before[x, y].hue;
                 static foreach (yOffset; -1 .. 2)
                 {
                     static foreach (xOffset; -1 .. 2)
@@ -213,7 +233,10 @@ private:
                             immutable cell = before[x + xOffset, y + yOffset];
                             if (cell.lifespan > 0)
                             {
-                                sumHue += cell.hue;
+                                if (cell.hue != sumHue)
+                                {
+                                    sumHue += cell.hue;
+                                }
                                 maxLifespan = max(maxLifespan, cell.lifespan);
                                 ++count;
                             }
@@ -231,9 +254,9 @@ private:
                         cast(ubyte)(beforeCell.lifespan - 1),
                         beforeCell.color);
                 }
-                else if (!beforeCell.live && count == 3)
+                else if (!beforeCell.live && count == 3 && maxLifespan > 1)
                 {
-                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte) maxLifespan);
+                    cells_[cellIndex] = Cell.fromHue(cast(ubyte) sumHue, cast(ubyte)(maxLifespan - 1));
                 }
                 else
                 {
@@ -301,6 +324,29 @@ private:
     assert(plane2[2, 0].lifespan == 0);
     assert(plane2[2, 1].lifespan == 0);
     assert(plane2[2, 2].lifespan == 0);
+}
+
+immutable bool[][] GLIDER = [
+    [false, true, false],
+    [false, false, true],
+    [true, true, true],
+]; 
+
+immutable bool[][] SPACE_SHIP = [
+    [true, false, false, true, false],
+    [false, false, false, false, true],
+    [true, false, false, false, true],
+    [false, true, true, true, true],
+]; 
+
+immutable(bool[][]) flipH(return scope const bool[][] life) nothrow pure @trusted
+{
+    return life.map!((a) => assumeUnique(a.dup.reverse)).array;
+}
+
+immutable(bool[][]) flipV(return scope const bool[][] life) nothrow pure @trusted
+{
+    return assumeUnique(life.dup.reverse);
 }
 
 private:
