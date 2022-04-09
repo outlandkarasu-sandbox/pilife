@@ -291,7 +291,7 @@ void mainLoop(
                     (cell.color.red << RED_SHIFT) |
                     (cell.color.green << GREEN_SHIFT) |
                     (cell.color.blue << BLUE_SHIFT) |
-                    (cell.lifespan << ALPHA_SHIFT);
+                    ((cast(ubyte)(cell.lifespan * 256 / Cell.maxLifespan)) << ALPHA_SHIFT);
             }
             else
             {
