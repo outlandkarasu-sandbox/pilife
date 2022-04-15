@@ -2,6 +2,7 @@
 Main module.
 */
 
+import std.algorithm : minElement;
 import std.exception :
     enforce;
 import std.parallelism :
@@ -200,13 +201,13 @@ void main()
 
 void lifeGame2D()
 {
-    writefln("displays: %s", getDisplays());
-
+    const displayMode = getDisplays()[0].modes.minElement!((m) => m.h);
     auto window = enforceSDL(SDL_CreateWindow(
         "pilife",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        720, 450,
+        displayMode.w,
+        displayMode.h,
         0)); //SDL_WINDOW_FULLSCREEN));
     scope(exit) SDL_DestroyWindow(window);
     auto windowSurface = enforceSDL(SDL_GetWindowSurface(window));
