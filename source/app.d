@@ -224,7 +224,7 @@ void lifeGame2D()
     scope(exit) SDL_FreeSurface(lifeGameSurface);
     enforceSDL(SDL_SetSurfaceRLE(lifeGameSurface, 1) == 0);
 
-    auto lifeGame = LifeGame(lifeGameSurface.w, lifeGameSurface.h);
+    auto lifeGame = LifeGame(lifeGameSurface.w / 2, lifeGameSurface.h / 2);
 
     SDL_UpdateWindowSurface(window);
     SDL_ShowWindow(window);
@@ -247,23 +247,26 @@ void mainLoop(
     bool pushedC;
     bool pushedSpace;
 
+    immutable centerX = lifeGame.width / 2;
+    immutable centerY = lifeGame.height / 2;
+
     void processInput()
     {
         if (pushedA)
         {
-             lifeGame.addLife(360, 200, GLIDER_FLOWER, randomHue());
+             lifeGame.addLife(10, centerY, GLIDER_FLOWER, randomHue());
              pushedA = false;
         }
 
         if (pushedB)
         {
-             lifeGame.addLife(0, 200, GLIDER, randomHue());
+             lifeGame.addLife(0, centerY, GLIDER, randomHue());
              pushedB = false;
         }
 
         if (pushedC)
         {
-             lifeGame.addLife(700, 200, SPACE_SHIP_L, randomHue());
+             lifeGame.addLife(centerX - 10, centerY, SPACE_SHIP_L, randomHue());
              pushedC = false;
         }
 
@@ -288,9 +291,10 @@ void mainLoop(
         pixels = cast(uint[]) surface.pixels[0 .. surface.w * surface.h * uint.sizeof];
         foreach (const size_t x, const size_t y, scope ref const(Cell) cell; *currentPlane)
         {
+            uint pixel;
             if (cell.live)
             {
-                pixels[y * surface.w + x] =
+                pixel =
                     (cell.color.red << RED_SHIFT) |
                     (cell.color.green << GREEN_SHIFT) |
                     (cell.color.blue << BLUE_SHIFT) |
@@ -298,8 +302,13 @@ void mainLoop(
             }
             else
             {
-                pixels[y * surface.w + x] = 0x8 << ALPHA_SHIFT;
+                pixel = 0x8 << ALPHA_SHIFT;
             }
+
+            pixels[(y * 2) * surface.w + x * 2] = pixel;
+            pixels[(y * 2) * surface.w + x * 2 + 1] = pixel;
+            pixels[(y * 2 + 1) * surface.w + x * 2] = pixel;
+            pixels[(y * 2 + 1) * surface.w + x * 2 + 1] = pixel;
         }
     }
 
