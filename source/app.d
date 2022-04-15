@@ -10,7 +10,7 @@ import std.parallelism :
 import std.random :
     choice, uniform;
 import std.stdio :
-    writefln;
+    writeln, writefln;
 import std.string :
     format;
 
@@ -64,7 +64,8 @@ import bindbc.sdl :
     SDL_GetPerformanceCounter,
     SDL_GetPerformanceFrequency,
     SDL_SetRenderDrawBlendMode,
-    SDL_BLENDMODE_BLEND;
+    SDL_BLENDMODE_BLEND,
+    SDL_MOUSEBUTTONDOWN;
 
 import bindbc.opengl :
     loadOpenGL,
@@ -245,6 +246,10 @@ void mainLoop(
     bool pushedA;
     bool pushedB;
     bool pushedC;
+    bool mouseClicked;
+    int  mouseClickedX;
+    int  mouseClickedY;
+    ubyte currentHue = randomHue();
 
     immutable centerX = lifeGame.width / 2;
     immutable centerY = lifeGame.height / 2;
@@ -259,24 +264,30 @@ void mainLoop(
                 {
                     if ([true, false].choice)
                     {
-                        lifeGame[x, y] = Cell.fromHue(randomHue());
+                        lifeGame[x, y] = Cell.fromHue(currentHue);
                     }
                 }
             }
         }
         else if (pushedA)
         {
-             lifeGame.addLife(10, centerY, GLIDER_FLOWER, randomHue());
+             lifeGame.addLife(10, centerY, GLIDER_FLOWER, currentHue);
         }
         else if (pushedB)
         {
-             lifeGame.addLife(centerX, centerY, GLIDER, randomHue());
+             lifeGame.addLife(centerX, centerY, GLIDER, currentHue);
         }
         else if (pushedC)
         {
-             lifeGame.addLife(lifeGame.width - 10, centerY, SPACE_SHIP_L, randomHue());
+             lifeGame.addLife(lifeGame.width - 10, centerY, SPACE_SHIP_L, currentHue);
         }
 
+        if (mouseClicked)
+        {
+             lifeGame.toggleLife(mouseClickedX / 2, mouseClickedY / 2, currentHue);
+        }
+
+        mouseClicked = false;
         pushedA = false;
         pushedB = false;
         pushedC = false;
@@ -308,6 +319,14 @@ void mainLoop(
         }
     }
 
+    void doNext(bool isRunning)
+    {
+        if (isRunning)
+        {
+            lifeGame.next();
+        }
+    }
+
     immutable frequency = SDL_GetPerformanceFrequency();
     immutable frameFrequency = frequency / 60;
     immutable inputWaitFrames = 10;
@@ -316,13 +335,13 @@ void mainLoop(
     size_t lastFrameTick;
     for (SDL_Event event; ; ++frameCount, lastFrameTick = SDL_GetPerformanceCounter())
     {
-        currentPlane = &lifeGame.currentPlane();
         if (frameCount % inputWaitFrames == 0)
         {
             processInput();
         }
 
-        auto nextStateTask = scopedTask(&lifeGame.next);
+        currentPlane = &lifeGame.currentPlane();
+        auto nextStateTask = scopedTask(&doNext, running);
         taskPool.put(nextStateTask);
         scope(success) nextStateTask.yieldForce();
 
@@ -334,6 +353,11 @@ void mainLoop(
         {
             switch (event.type)
             {
+                case SDL_MOUSEBUTTONDOWN:
+                    mouseClicked = true;
+                    mouseClickedX = event.button.x;
+                    mouseClickedY = event.button.y;
+                    break;
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym)
                     {
