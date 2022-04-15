@@ -260,13 +260,13 @@ void mainLoop(
 
         if (pushedB)
         {
-             lifeGame.addLife(0, centerY, GLIDER, randomHue());
+             lifeGame.addLife(centerX, centerY, GLIDER, randomHue());
              pushedB = false;
         }
 
         if (pushedC)
         {
-             lifeGame.addLife(centerX - 10, centerY, SPACE_SHIP_L, randomHue());
+             lifeGame.addLife(lifeGame.width - 10, centerY, SPACE_SHIP_L, randomHue());
              pushedC = false;
         }
 
