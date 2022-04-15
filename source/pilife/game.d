@@ -127,6 +127,19 @@ struct LifeGame
         return value;
     }
 
+    void toggleLife(ptrdiff_t x, ptrdiff_t y, ubyte hue) @nogc nothrow pure @safe scope
+    {
+        immutable old = currentPlane[x, y];
+        if (old.lifespan == 0)
+        {
+            this[x, y] = Cell.fromHue(hue);
+        }
+        else
+        {
+            this[x, y] = Cell.empty;
+        }
+    }
+
     /**
     life game world translate to next state.
     */
@@ -141,7 +154,6 @@ struct LifeGame
     {
         return (currentIs2_ ? plane2_ : plane1_);
     }
-
 
 private:
     Plane plane1_;
