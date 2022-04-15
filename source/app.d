@@ -21,7 +21,6 @@ import bindbc.sdl :
     SDLK_a,
     SDLK_b,
     SDLK_c,
-    SDLK_RETURN,
     SDLK_SPACE,
     SDLK_ESCAPE,
     SDL_Quit,
@@ -245,32 +244,13 @@ void mainLoop(
     bool pushedA;
     bool pushedB;
     bool pushedC;
-    bool pushedSpace;
 
     immutable centerX = lifeGame.width / 2;
     immutable centerY = lifeGame.height / 2;
 
     void processInput()
     {
-        if (pushedA)
-        {
-             lifeGame.addLife(10, centerY, GLIDER_FLOWER, randomHue());
-             pushedA = false;
-        }
-
-        if (pushedB)
-        {
-             lifeGame.addLife(centerX, centerY, GLIDER, randomHue());
-             pushedB = false;
-        }
-
-        if (pushedC)
-        {
-             lifeGame.addLife(lifeGame.width - 10, centerY, SPACE_SHIP_L, randomHue());
-             pushedC = false;
-        }
-
-        if (pushedSpace)
+        if (pushedA && pushedB && pushedC)
         {
             foreach (y; 0 .. lifeGame.height)
             {
@@ -282,8 +262,23 @@ void mainLoop(
                     }
                 }
             }
-            pushedSpace = false;
         }
+        else if (pushedA)
+        {
+             lifeGame.addLife(10, centerY, GLIDER_FLOWER, randomHue());
+        }
+        else if (pushedB)
+        {
+             lifeGame.addLife(centerX, centerY, GLIDER, randomHue());
+        }
+        else if (pushedC)
+        {
+             lifeGame.addLife(lifeGame.width - 10, centerY, SPACE_SHIP_L, randomHue());
+        }
+
+        pushedA = false;
+        pushedB = false;
+        pushedC = false;
     }
 
     void renderCells()
@@ -314,13 +309,18 @@ void mainLoop(
 
     immutable frequency = SDL_GetPerformanceFrequency();
     immutable frameFrequency = frequency / 60;
+    immutable inputWaitFrames = 10;
     size_t frameCount;
     size_t lastTick;
     size_t lastFrameTick;
     for (SDL_Event event; ; ++frameCount, lastFrameTick = SDL_GetPerformanceCounter())
     {
         currentPlane = &lifeGame.currentPlane();
-        processInput();
+        if (frameCount % inputWaitFrames == 0)
+        {
+            processInput();
+        }
+
         auto nextStateTask = scopedTask(&lifeGame.next);
         taskPool.put(nextStateTask);
         scope(success) nextStateTask.yieldForce();
@@ -336,11 +336,8 @@ void mainLoop(
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym)
                     {
-                        case SDLK_RETURN:
-                            running = !running;
-                            break;
                         case SDLK_SPACE:
-                            pushedSpace = true;
+                            running = !running;
                             break;
                         case SDLK_ESCAPE:
                             return;
